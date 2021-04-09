@@ -13,8 +13,8 @@ The module contains functions to
 - Create CloudEvent objects
 - Add data to a CloudEvent object
 - Read data from a CloudEvent object
-- Convert an CloudEvent object to an HTTP Message
-- Convert an HTTP Message to an CloudEvent object
+- Convert a CloudEvent object to an HTTP Message
+- Convert an HTTP Message to a CloudEvent object
 
 ## Producer
 ### Create a CloudEvent object
@@ -34,7 +34,7 @@ $cloudEvent | Add-CloudEventJsonData -Data @{
 
 ### Add **XML Data** to a CloudEvent object
 ```powershell
-$cloudEvent | Add-CloudEventXmlData -Data @{   
+$cloudEvent | Add-CloudEventXmlData -Data @{
    'key1' = @{
       'key2' = 'value'
    }
@@ -91,7 +91,7 @@ $hashtableData = Read-CloudEventJsonData -CloudEvent $cloudEvent
 $hashtableData = Read-CloudEventXmlData -CloudEvent $cloudEvent -ConvertMode SkipAttributes
 ```
 The `ConvertMode` parameter specifies how the XML to be represented in the result hashtable<br/>
-`SkipAttributes` - Skips attributes of the XML elements. XmlElement is represented as a Key-Value pair where key is the xml element name, and the value is the xml element inner text<br/>
+`SkipAttributes` - Skips attributes of the XML elements. XmlElement is a Key-Value pair where Key is the Xml element name, and the value is the Xml element inner text<br/>
 Example:
 ```xml
 <key att='true'>value1</key>
@@ -100,8 +100,8 @@ is converted to
 ```powershell
 @{'key' = 'value-1'}
 ```
-`AlwaysAttrValue` - Each element is represented as a hashtable with two keys<br/>
-        'Attributes' - key-value pair of the cml element attributes if any, otherwise null<br/>
+`AlwaysAttrValue` - Each element is a HashTable with two keys<br/>
+        'Attributes' - key-value pair of the Xml element attributes if any, otherwise null<br/>
         'Value' - string value represinting the xml element inner text<br/>
 Example:
 ```xml
@@ -186,28 +186,4 @@ Discovery finished in 176ms.
 [+] C:\git-repos\cloudevents\cloudevents-sdk-powershell\test\integration\HttpIntegration.Tests.ps1 2.54s (1.77s|617ms)
 Tests completed in 2.56s
 Tests Passed: 5, Failed: 0, Skipped: 0 NotRun: 0
-```
-
-# Install **CloudEvents.Sdk** Module
-
-```powershell
-$vmwareArtifactoryRepo = 'https://build-artifactory.eng.vmware.com/artifactory/api/nuget/powercli-nuget-local/'
-
-Register-PSRepository -Name 'Artifactory' -SourceLocation $vmwareArtifactoryRepo -PublishLocation $vmwareArtifactoryRepo -InstallationPolicy Trusted
-
-Install-Module CloudEvents.Sdk -Repository Artifactory
-Import-Module CloudEvents.Sdk
-Get-Command -Module CloudEvents.Sdk
-
-ommandType     Name                                               Version    Source
------------     ----                                               -------    ------
-Function        Add-CloudEventData                                 0.1.2      CloudEvents.Sdk
-Function        Add-CloudEventJsonData                             0.1.2      CloudEvents.Sdk
-Function        Add-CloudEventXmlData                              0.1.2      CloudEvents.Sdk
-Function        ConvertFrom-HttpMessage                            0.1.2      CloudEvents.Sdk
-Function        ConvertTo-HttpMessage                              0.1.2      CloudEvents.Sdk
-Function        New-CloudEvent                                     0.1.2      CloudEvents.Sdk
-Function        Read-CloudEventData                                0.1.2      CloudEvents.Sdk
-Function        Read-CloudEventJsonData                            0.1.2      CloudEvents.Sdk
-Function        Read-CloudEventXmlData                             0.1.2      CloudEvents.Sdk
 ```

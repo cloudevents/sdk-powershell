@@ -98,4 +98,3 @@ if (Test-Path $catalogFilePath) {
    # Delete previous catalog file
    Remove-Item $catalogFilePath -Confirm:$false
 }
-New-FileCatalog -Path $OutputDir -CatalogFilePath $catalogFilePath | Out-Null

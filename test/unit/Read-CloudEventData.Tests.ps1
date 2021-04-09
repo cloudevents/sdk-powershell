@@ -1,3 +1,8 @@
+# **************************************************************************
+#  Copyright (c) Cloud Native Foundation.
+#  SPDX-License-Identifier: Apache-2.0
+# **************************************************************************
+
 Describe "Read-CloudEventData Function Tests" {
    Context "Extracts Data from CloudEvent" {
       It 'Reads xml text data' {

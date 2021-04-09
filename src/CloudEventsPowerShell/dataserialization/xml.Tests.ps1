@@ -1,3 +1,8 @@
+# **************************************************************************
+#  Copyright (c) Cloud Native Foundation.
+#  SPDX-License-Identifier: Apache-2.0
+# **************************************************************************
+
 BeforeAll {
     . $PSCommandPath.Replace('.Tests.ps1', '.ps1')
 }

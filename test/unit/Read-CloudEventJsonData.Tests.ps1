@@ -1,3 +1,8 @@
+# **************************************************************************
+#  Copyright (c) Cloud Native Foundation.
+#  SPDX-License-Identifier: Apache-2.0
+# **************************************************************************
+
 Describe "Read-CloudEventJsonData Function Tests" {
    Context "Extracts Json Data from CloudEvent" {
       It 'Extracts hashtable from CloudEvent with json data' {

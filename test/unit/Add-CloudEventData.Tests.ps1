@@ -1,3 +1,8 @@
+# **************************************************************************
+#  Copyright (c) Cloud Native Foundation.
+#  SPDX-License-Identifier: Apache-2.0
+# **************************************************************************
+
 Describe "Add-CloudEventData Function Tests" {
    Context "Adds Data" {
       It 'Adds byte[] data' {

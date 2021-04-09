@@ -1,3 +1,8 @@
+# **************************************************************************
+#  Copyright (c) Cloud Native Foundation.
+#  SPDX-License-Identifier: Apache-2.0
+# **************************************************************************
+
 Describe "New-CloudEvent Function Tests" {
    Context "Create CloudEvent Object" {
       It 'Create CloudEvent with required parameters only' {

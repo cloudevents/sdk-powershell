@@ -1,3 +1,8 @@
+# **************************************************************************
+#  Copyright (c) Cloud Native Foundation.
+#  SPDX-License-Identifier: Apache-2.0
+# **************************************************************************
+
 $xmlDataSerilizationLibPath = Join-Path (Join-Path $PSScriptRoot 'dataserialization') 'xml.ps1'
 . $xmlDataSerilizationLibPath
 

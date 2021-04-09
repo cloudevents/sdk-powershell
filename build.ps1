@@ -90,11 +90,3 @@ Start-Tests -TestsType 'unit'
 
 # 5. Run Integration Tests
 Start-Tests -TestsType 'integration'
-
-# 6. Prepare Module for Publishing
-$dirItem = Get-Item $OutputDir
-$catalogFilePath = Join-path $OutputDir ($dirItem.Name + ".cat")
-if (Test-Path $catalogFilePath) {
-   # Delete previous catalog file
-   Remove-Item $catalogFilePath -Confirm:$false
-}

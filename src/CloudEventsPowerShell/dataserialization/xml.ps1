@@ -1,3 +1,8 @@
+# **************************************************************************
+#  Copyright (c) Cloud Native Foundation.
+#  SPDX-License-Identifier: Apache-2.0
+# **************************************************************************
+
 $SKIPATTR = "SkipAttributes"
 $ALWAYSATTRVALUE = "AlwaysAttrValue"
 $ATTRVALUEFORELEMENTSWITHATTR = "AttrValueWhenAttributes"

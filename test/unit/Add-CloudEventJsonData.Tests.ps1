@@ -1,3 +1,8 @@
+# **************************************************************************
+#  Copyright (c) Cloud Native Foundation.
+#  SPDX-License-Identifier: Apache-2.0
+# **************************************************************************
+
 Describe "Add-CloudEventJsonData Function Tests" {
    Context "Adds Json Data" {
       It 'Adds json data with depth 1' {

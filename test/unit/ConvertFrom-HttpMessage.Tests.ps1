@@ -1,3 +1,8 @@
+# **************************************************************************
+#  Copyright (c) Cloud Native Foundation.
+#  SPDX-License-Identifier: Apache-2.0
+# **************************************************************************
+
 Describe "ConvertFrom-HttpMessage Function Tests" {
    BeforeAll {
       $expectedSpecVersion = '1.0'

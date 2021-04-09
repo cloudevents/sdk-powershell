@@ -1,3 +1,8 @@
+# **************************************************************************
+#  Copyright (c) Cloud Native Foundation.
+#  SPDX-License-Identifier: Apache-2.0
+# **************************************************************************
+
 Describe "Add-CloudEventXmlData Function Tests" {
    Context "Adds Xml Data" {
       It 'Adds xml data with depth 1' {

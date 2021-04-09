@@ -1,3 +1,7 @@
+# **************************************************************************
+#  Copyright (c) Cloud Native Foundation.
+#  SPDX-License-Identifier: Apache-2.0
+# **************************************************************************
 
 @{
 
@@ -20,7 +24,7 @@ Author = 'dmilov'
 CompanyName = 'The CloudEvents Authors'
 
 # Copyright statement for this module
-Copyright = '(c) The CloudEvents Authors
+Copyright = '(c) The CloudEvents Authors'
 
 # Description of the functionality provided by this module
 Description = 'PowerShell CloudEvents SDK'

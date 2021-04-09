@@ -14,7 +14,7 @@ Describe "Read-CloudEventJsonData Function Tests" {
 
          $expectedHtData = @{'a' = 'b'}
 
-         $cloudEvent = $cloudEvent | Add-CloudEventJsonData -Data $expectedHtData
+         $cloudEvent = $cloudEvent | Set-CloudEventJsonData -Data $expectedHtData
 
          # Act
          $actual = $cloudEvent | Read-CloudEventJsonData
@@ -32,7 +32,7 @@ Describe "Read-CloudEventJsonData Function Tests" {
                         -Type test `
                         -Source 'urn:test'
 
-         $cloudEvent = $cloudEvent | Add-CloudEventData -Data "test" -DataContentType 'application/text'
+         $cloudEvent = $cloudEvent | Set-CloudEventData -Data "test" -DataContentType 'application/text'
          $pre
 
          # Act
@@ -58,7 +58,7 @@ Describe "Read-CloudEventJsonData Function Tests" {
             }
          }
 
-         $cloudEvent = $cloudEvent | Add-CloudEventJsonData -Data $expectedHtData -Depth 4
+         $cloudEvent = $cloudEvent | Set-CloudEventJsonData -Data $expectedHtData -Depth 4
 
          # Act
          $actual = $cloudEvent | Read-CloudEventJsonData -Depth 4

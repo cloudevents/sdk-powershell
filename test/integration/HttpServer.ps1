@@ -113,15 +113,15 @@ while ( -not $global:serverStopRequested ) {
          $requestCloudEventJsonData = $requestCloudEvent | Read-CloudEventJsonData
          $requestCloudEventXmlData = $requestCloudEvent | Read-CloudEventXmlData -ConvertMode 'SkipAttributes'
          if ($requestCloudEventJsonData) {
-            $cloudEvent = $cloudEvent | Add-CloudEventJsonData `
+            $cloudEvent = $cloudEvent | Set-CloudEventJsonData `
                -Data $requestCloudEventJsonData
          } elseif ($requestCloudEventXmlData) {
-            $cloudEvent = $cloudEvent | Add-CloudEventXmlData `
+            $cloudEvent = $cloudEvent | Set-CloudEventXmlData `
                -Data $requestCloudEventXmlData `
                -AttributesKeysInElementAttributes $false
          } else {
             $requestCloudEventData = $requestCloudEvent | Read-CloudEventData
-            $cloudEvent = $cloudEvent | Add-CloudEventData `
+            $cloudEvent = $cloudEvent | Set-CloudEventData `
                -Data $requestCloudEventData `
                -DataContentType $requestCloudEvent.DataContentType
          }

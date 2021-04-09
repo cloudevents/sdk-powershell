@@ -9,7 +9,7 @@
 RootModule = 'CloudEvents.Sdk.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.1.4'
+ModuleVersion = '0.2.1'
 
 # Supported PSEditions
 CompatiblePSEditions = @('Core')
@@ -67,7 +67,7 @@ RequiredAssemblies = @('CloudNative.CloudEvents.dll')
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
 FunctionsToExport = @(
-'New-CloudEvent', 'Add-CloudEventData', 'Add-CloudEventJsonData', 'Add-CloudEventXmlData', 'Read-CloudEventData', 'Read-CloudEventJsonData', 'Read-CloudEventXmlData', # CloudEvent Object Functions
+'New-CloudEvent', 'Set-CloudEventData', 'Set-CloudEventJsonData', 'Set-CloudEventXmlData', 'Read-CloudEventData', 'Read-CloudEventJsonData', 'Read-CloudEventXmlData', # CloudEvent Object Functions
 'ConvertTo-HttpMessage', 'ConvertFrom-HttpMessage' # Http Binding Functions
 )
 

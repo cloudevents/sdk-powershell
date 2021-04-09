@@ -3,9 +3,9 @@
 #  SPDX-License-Identifier: Apache-2.0
 # **************************************************************************
 
-Describe "Add-CloudEventJsonData Function Tests" {
-   Context "Adds Json Data" {
-      It 'Adds json data with depth 1' {
+Describe "Set-CloudEventJsonData Function Tests" {
+   Context "Sets Json Data" {
+      It 'Sets json data with depth 1' {
          # Arrange
          $cloudEvent = New-CloudEvent `
                         -Id ([Guid]::NewGuid()) `
@@ -19,7 +19,7 @@ Describe "Add-CloudEventJsonData Function Tests" {
          $htData = @{'a' = 'b'}
 
          # Act
-         $actual = $cloudEvent | Add-CloudEventJsonData -Data $htData
+         $actual = $cloudEvent | Set-CloudEventJsonData -Data $htData
 
          # Assert
          $actual | Should -Not -Be $null
@@ -27,7 +27,7 @@ Describe "Add-CloudEventJsonData Function Tests" {
          $actual.Data | Should -Be $expectedJson
       }
 
-      It 'Adds json data with depth 4' {
+      It 'Sets json data with depth 4' {
          # Arrange
          $cloudEvent = New-CloudEvent `
                         -Id ([Guid]::NewGuid()) `
@@ -55,7 +55,7 @@ Describe "Add-CloudEventJsonData Function Tests" {
          }
 
          # Act
-         $actual = $cloudEvent | Add-CloudEventJsonData -Data $htData -Depth 4
+         $actual = $cloudEvent | Set-CloudEventJsonData -Data $htData -Depth 4
 
          # Assert
          $actual | Should -Not -Be $null

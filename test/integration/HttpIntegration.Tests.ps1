@@ -58,7 +58,7 @@ Describe "Client-Server Integration Tests" {
                   -Source $script:ClientSource `
                   -Id 'integration-test-1' `
                   -Time (Get-Date) | `
-               Add-CloudEventJsonData -Data @{
+               Set-CloudEventJsonData -Data @{
                   'a1' = 'b'
                   'a2' = 'c'
                   'a3' = 'd'
@@ -106,7 +106,7 @@ Describe "Client-Server Integration Tests" {
                   -Source $script:ClientSource `
                   -Id 'integration-test-2' `
                   -Time (Get-Date) | `
-               Add-CloudEventXmlData -Data @{
+               Set-CloudEventXmlData -Data @{
                   'a1' = @{
                      'a2' = 'c'
                      'a3' = 'd'
@@ -157,7 +157,7 @@ Describe "Client-Server Integration Tests" {
                   -Source $script:ClientSource `
                   -Id 'integration-test-3' `
                   -Time (Get-Date) | `
-               Add-CloudEventJsonData -Data @{
+               Set-CloudEventJsonData -Data @{
                   'b1' = 'd'
                   'b2' = 'e'
                   'b3' = 'f'
@@ -205,7 +205,7 @@ Describe "Client-Server Integration Tests" {
                   -Source $script:ClientSource `
                   -Id 'integration-test-4' `
                   -Time (Get-Date) | `
-               Add-CloudEventXmlData -Data @{
+               Set-CloudEventXmlData -Data @{
                   'b1' = @{
                      'b2' = 'e'
                      'b3' = 'f'
@@ -256,7 +256,7 @@ Describe "Client-Server Integration Tests" {
                   -Source $script:ClientSource `
                   -Id 'integration-test-5' `
                   -Time (Get-Date) | `
-               Add-CloudEventData `
+               Set-CloudEventData `
                   -Data 'This is text data' `
                   -DataContentType 'application/text'
 

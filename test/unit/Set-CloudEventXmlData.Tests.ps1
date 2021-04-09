@@ -3,9 +3,9 @@
 #  SPDX-License-Identifier: Apache-2.0
 # **************************************************************************
 
-Describe "Add-CloudEventXmlData Function Tests" {
-   Context "Adds Xml Data" {
-      It 'Adds xml data with depth 1' {
+Describe "Set-CloudEventXmlData Function Tests" {
+   Context "Sets Xml Data" {
+      It 'Sets xml data with depth 1' {
          # Arrange
          $cloudEvent = New-CloudEvent `
                         -Id ([Guid]::NewGuid()) `
@@ -17,7 +17,7 @@ Describe "Add-CloudEventXmlData Function Tests" {
          $htData = @{'a' = 'b'}
 
          # Act
-         $actual = $cloudEvent | Add-CloudEventXmlData -Data $htData -AttributesKeysInElementAttributes $false
+         $actual = $cloudEvent | Set-CloudEventXmlData -Data $htData -AttributesKeysInElementAttributes $false
 
          # Assert
          $actual | Should -Not -Be $null
@@ -25,7 +25,7 @@ Describe "Add-CloudEventXmlData Function Tests" {
          $actual.Data | Should -Be $expectedXml
       }
 
-      It 'Adds xml data with depth 4' {
+      It 'Sets xml data with depth 4' {
          # Arrange
          $cloudEvent = New-CloudEvent `
                         -Id ([Guid]::NewGuid()) `
@@ -45,7 +45,7 @@ Describe "Add-CloudEventXmlData Function Tests" {
          }
 
          # Act
-         $actual = $cloudEvent | Add-CloudEventXmlData -Data $htData -AttributesKeysInElementAttributes $false
+         $actual = $cloudEvent | Set-CloudEventXmlData -Data $htData -AttributesKeysInElementAttributes $false
 
          # Assert
          $actual | Should -Not -Be $null
@@ -53,7 +53,7 @@ Describe "Add-CloudEventXmlData Function Tests" {
          $actual.Data | Should -Be $expectedXml
       }
 
-      It 'Should throw when no single root key hashtable is passed to the Add-CloudEventXmlData Data parameter' {
+      It 'Should throw when no single root key hashtable is passed to the Set-CloudEventXmlData Data parameter' {
          # Arrange
          $cloudEvent = New-CloudEvent `
                         -Id ([Guid]::NewGuid()) `
@@ -66,7 +66,7 @@ Describe "Add-CloudEventXmlData Function Tests" {
          }
 
          # Act & Assert
-         { $cloudEvent | Add-CloudEventXmlData -Data $htData -AttributesKeysInElementAttributes $false} | `
+         { $cloudEvent | Set-CloudEventXmlData -Data $htData -AttributesKeysInElementAttributes $false} | `
          Should -Throw '*Input Hashtable must have single root key*'
       }
    }

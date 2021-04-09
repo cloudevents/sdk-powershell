@@ -26,7 +26,7 @@ Describe "ConvertTo-HttpMessage Function Tests" {
                         -Time $expectedTime
 
          $expectedData = @{ 'key1' = 'value2'; 'key3' = 'value4' }
-         $cloudEvent = Add-CloudEventJsonData `
+         $cloudEvent = Set-CloudEventJsonData `
                         -CloudEvent $cloudEvent `
                         -Data $expectedData
 
@@ -75,7 +75,7 @@ Describe "ConvertTo-HttpMessage Function Tests" {
                         -Source $expectedSource
 
          $expectedData = '<much wow="xml"/>'
-         $cloudEvent = Add-CloudEventData `
+         $cloudEvent = Set-CloudEventData `
                         -CloudEvent $cloudEvent `
                         -Data $expectedData `
                         -DataContentType $expectedDataContentType
@@ -120,7 +120,7 @@ Describe "ConvertTo-HttpMessage Function Tests" {
                         -Time $expectedTime
 
          $expectedData = @{ 'key1' = 'value2'; 'key3' = 'value4' }
-         $cloudEvent = Add-CloudEventJsonData `
+         $cloudEvent = Set-CloudEventJsonData `
                         -CloudEvent $cloudEvent `
                         -Data $expectedData
 
@@ -185,7 +185,7 @@ Describe "ConvertTo-HttpMessage Function Tests" {
                         -Source $expectedSource
 
          $expectedData = '<much wow="xml"/>'
-         $cloudEvent = Add-CloudEventData `
+         $cloudEvent = Set-CloudEventData `
                         -CloudEvent $cloudEvent `
                         -Data $expectedData `
                         -DataContentType $expectedDataContentType

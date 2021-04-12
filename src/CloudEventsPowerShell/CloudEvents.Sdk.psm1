@@ -76,13 +76,13 @@ PROCESS {
 function Set-CloudEventData {
 <#
    .SYNOPSIS
-   This function sets data into a cloud event.
+   This function sets data in a cloud event.
 
    .DESCRIPTION
-   This function sets data into a cloud event object with the provided parameters.
+   This function sets data in a cloud event object with the provided parameters.
 
    .PARAMETER CloudEvent
-   Specifies the cloud event object to set data into.
+   Specifies the cloud event object to set data to.
 
    .PARAMETER Data
    Specifies the data object that is set to the cloud event 'data' attribute.
@@ -95,7 +95,7 @@ function Set-CloudEventData {
    $cloudEvent = New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io' -Id '6e8bc430-9c3a-11d9-9669-0800200c9a66' -Time (Get-Date)
    $cloudEvent | Set-CloudEventData -Data '<much wow="xml"/>' -DataContentType 'application/xml'
 
-   Sets xml data into the cloud event
+   Sets xml data to the cloud event
 #>
 
 [CmdletBinding()]
@@ -138,24 +138,29 @@ PROCESS {
 function Set-CloudEventJsonData {
 <#
    .SYNOPSIS
-   This function sets JSON format data into a cloud event.
+   This function sets JSON format data in a cloud event.
 
    .DESCRIPTION
-   This function converts a PowerShell hashtable to JSON format data and sets it into a cloud event.
+   This function converts a PowerShell hashtable to JSON format data and sets it in a cloud event.
 
    .PARAMETER CloudEvent
-   Specifies the cloud event object to set data into.
+   Specifies the cloud event object to set data in.
 
    .PARAMETER Data
    Specifies the PowerShell hashtable object that is set as JSON on the cloud event 'data' attribute.
-   The 'datacontenttype' attribute is set to 'applicaiton/json'
+   The 'datacontenttype' attribute is set to 'application/json'
+
+   .PARAMETER Depth
+   The maximum depth of the input hashtable specified on the `Data` parameter that will be converted to JSON.
+   This parameter is passed on the `-Depth` parameter of the `ConvertTo-Json` cmdlet.
+   The default value is 3
 
 
    .EXAMPLE
    $cloudEvent = New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io' -Id '6e8bc430-9c3a-11d9-9669-0800200c9a66' -Time (Get-Date)
    $cloudEvent | Set-CloudEventJsonData -Data @{ 'key1' = 'value1'; 'key2' = 'value2'; }
 
-   Sets JSON data into the cloud event
+   Sets JSON data to the cloud event
 #>
 
 [CmdletBinding()]
@@ -196,17 +201,17 @@ PROCESS {
 function Set-CloudEventXmlData {
 <#
    .SYNOPSIS
-   This function sets XML format data into a cloud event.
+   This function sets XML format data in a cloud event.
 
    .DESCRIPTION
-   This function converts a PowerShell hashtable to XML format data and sets it into a cloud event.
+   This function converts a PowerShell hashtable to XML format data and sets it in a cloud event.
 
    .PARAMETER CloudEvent
-   Specifies the cloud event object to set data into.
+   Specifies the cloud event object to set data to.
 
    .PARAMETER Data
    Specifies the PowerShell hashtable object that is set as XML on the cloud event 'data' attribute.
-   The 'datacontenttype' attribute is set to 'applicaiton/xml'
+   The 'datacontenttype' attribute is set to 'application/xml'
 
    .PARAMETER AttributesKeysInElementAttributes
    Specifies how to format the XML. If specified and the input Data hashtable has pairs of 'Attributes', 'Value' keys
@@ -221,7 +226,7 @@ function Set-CloudEventXmlData {
    $cloudEvent = New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io' -Id '6e8bc430-9c3a-11d9-9669-0800200c9a66' -Time (Get-Date)
    $cloudEvent | Set-CloudEventXmlData -Data @{ 'key1' = 'value1'; 'key2' = 'value2'; } -AttributesKeysInElementAttributes $true
 
-   Sets XML data into the cloud event
+   Sets XML data in the cloud event
 #>
 
 [CmdletBinding()]

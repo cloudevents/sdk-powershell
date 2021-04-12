@@ -82,10 +82,10 @@ function Set-CloudEventData {
    This function sets data in a cloud event object with the provided parameters.
 
    .PARAMETER CloudEvent
-   Specifies the cloud event object to set data to.
+   Specifies the cloud event object that receives the data.
 
    .PARAMETER Data
-   Specifies the data object that is set to the cloud event 'data' attribute.
+   Specifies the data object for the cloud event 'data' attribute.
 
    .PARAMETER DataContentType
    Specifies the 'datacontenttype' attribute of the cloud event.
@@ -144,7 +144,7 @@ function Set-CloudEventJsonData {
    This function converts a PowerShell hashtable to JSON format data and sets it in a cloud event.
 
    .PARAMETER CloudEvent
-   Specifies the cloud event object to set data in.
+   Specifies the cloud event object that receives the data.
 
    .PARAMETER Data
    Specifies the PowerShell hashtable object that is set as JSON on the cloud event 'data' attribute.
@@ -207,7 +207,7 @@ function Set-CloudEventXmlData {
    This function converts a PowerShell hashtable to XML format data and sets it in a cloud event.
 
    .PARAMETER CloudEvent
-   Specifies the cloud event object to set data to.
+   Specifies the cloud event object that receives the data.
 
    .PARAMETER Data
    Specifies the PowerShell hashtable object that is set as XML on the cloud event 'data' attribute.

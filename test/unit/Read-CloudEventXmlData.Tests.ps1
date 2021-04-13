@@ -15,7 +15,7 @@ Describe "Read-CloudEventXmlData Function Tests" {
          $xmlData = "<a>b</a>"
          $expectedHtData = @{'a' = 'b'}
 
-         $cloudEvent = $cloudEvent | Add-CloudEventData -Data $xmlData -DataContentType 'application/xml'
+         $cloudEvent = $cloudEvent | Set-CloudEventData -Data $xmlData -DataContentType 'application/xml'
 
          # Act
          $actual = $cloudEvent | Read-CloudEventXmlData -ConvertMode 'SkipAttributes'
@@ -33,7 +33,7 @@ Describe "Read-CloudEventXmlData Function Tests" {
                         -Type test `
                         -Source 'urn:test'
 
-         $cloudEvent = $cloudEvent | Add-CloudEventData -Data "test" -DataContentType 'application/text'
+         $cloudEvent = $cloudEvent | Set-CloudEventData -Data "test" -DataContentType 'application/text'
          $pre
 
          # Act
@@ -60,7 +60,7 @@ Describe "Read-CloudEventXmlData Function Tests" {
             }
          }
 
-         $cloudEvent = $cloudEvent | Add-CloudEventData -Data $xmlData -DataContentType 'application/xml'
+         $cloudEvent = $cloudEvent | Set-CloudEventData -Data $xmlData -DataContentType 'application/xml'
 
          # Act
          $actual = $cloudEvent | Read-CloudEventXmlData -ConvertMode 'SkipAttributes'

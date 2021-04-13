@@ -3,9 +3,9 @@
 #  SPDX-License-Identifier: Apache-2.0
 # **************************************************************************
 
-Describe "Add-CloudEventData Function Tests" {
-   Context "Adds Data" {
-      It 'Adds byte[] data' {
+Describe "Set-CloudEventData Function Tests" {
+   Context "Sets Data" {
+      It 'Sets byte[] data' {
          # Arrange
          $cloudEvent = New-CloudEvent `
                         -Id ([Guid]::NewGuid()) `
@@ -18,7 +18,7 @@ Describe "Add-CloudEventData Function Tests" {
 
          # Act
          $actual = $cloudEvent | `
-            Add-CloudEventData `
+            Set-CloudEventData `
                -Data $expectedData `
                -DataContentType $expectedDataContentType
 
@@ -28,7 +28,7 @@ Describe "Add-CloudEventData Function Tests" {
          $actual.Data | Should -Be $expectedData
       }
 
-      It 'Adds xml text data' {
+      It 'Sets xml text data' {
          # Arrange
          $cloudEvent = New-CloudEvent `
                         -Id ([Guid]::NewGuid()) `
@@ -41,7 +41,7 @@ Describe "Add-CloudEventData Function Tests" {
 
          # Act
          $actual = $cloudEvent | `
-            Add-CloudEventData `
+            Set-CloudEventData `
                -Data $expectedData `
                -DataContentType $expectedDataContentType
 
@@ -64,7 +64,7 @@ Describe "Add-CloudEventData Function Tests" {
                         -Source 'urn:test'
 
          # Act & Assert
-         { Add-CloudEventData `
+         { Set-CloudEventData `
                -CloudEvent $cloudEvent `
                -Data '1' `
                -DataContentType $invalidContentType } | `
@@ -81,7 +81,7 @@ Describe "Add-CloudEventData Function Tests" {
                         -Source 'urn:test'
 
          # Act & Assert
-         { Add-CloudEventData `
+         { Set-CloudEventData `
                -CloudEvent $cloudEvent `
                -Data '1' `
                -DataContentType $invalidContentType } | `
@@ -98,7 +98,7 @@ Describe "Add-CloudEventData Function Tests" {
                         -Source 'urn:test'
 
          # Act & Assert
-         { Add-CloudEventData `
+         { Set-CloudEventData `
                -CloudEvent $cloudEvent `
                -Data '1' `
                -DataContentType $invalidContentType } | `

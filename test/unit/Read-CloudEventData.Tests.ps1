@@ -16,7 +16,7 @@ Describe "Read-CloudEventData Function Tests" {
          $expectedData = '<much wow="xml"/>'
          $expectedDataContentType = 'text/xml'
 
-         $cloudEvent = $cloudEvent | Add-CloudEventData -Data $expectedData -DataContentType $expectedDataContentType
+         $cloudEvent = $cloudEvent | Set-CloudEventData -Data $expectedData -DataContentType $expectedDataContentType
 
          # Act
          $actual = $cloudEvent | Read-CloudEventData

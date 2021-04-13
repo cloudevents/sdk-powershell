@@ -19,7 +19,7 @@ Describe "Set-CloudEventJsonData Function Tests" {
          $htData = @{'a' = 'b'}
 
          # Act
-         $actual = $cloudEvent | Set-CloudEventJsonData -Data $htData
+         $actual = $cloudEvent | Set-CloudEventJsonData -Data $htData -Depth 1
 
          # Assert
          $actual | Should -Not -Be $null

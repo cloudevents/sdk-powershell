@@ -14,7 +14,7 @@ Describe "Read-CloudEventJsonData Function Tests" {
 
          $expectedHtData = @{'a' = 'b'}
 
-         $cloudEvent = $cloudEvent | Set-CloudEventJsonData -Data $expectedHtData
+         $cloudEvent = $cloudEvent | Set-CloudEventJsonData -Data $expectedHtData -Depth 1
 
          # Act
          $actual = $cloudEvent | Read-CloudEventJsonData

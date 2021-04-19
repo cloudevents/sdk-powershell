@@ -3,10 +3,32 @@
 #  SPDX-License-Identifier: Apache-2.0
 # **************************************************************************
 
+<#
+   .SYNOPSIS
+   Builds and tests the CloudEvents.Sdk module
+
+
+   .DESCRIPTION
+   The script is the entry point to build and test the CloudEvents.Sdk module.
+
+   .PARAMETER OutputDir
+   Target directory where the CloudEvents.Sdk will be created by the script. The default is the PS Script Root
+
+   .PARAMETER TestsType
+   Specifies the type of the test to be run post build. Possible values are 'none','unit', 'integration', 'all'. 
+   The default is 'all'
+
+#>
+
 param(
    [Parameter()]
    [string]
-   $OutputDir
+   $OutputDir,
+
+   [Parameter()]
+   [ValidateSet('none','unit', 'integration', 'all')]
+   [string]
+   $TestsType = 'all'
 )
 
 $moduleName = 'CloudEvents.Sdk'
@@ -44,7 +66,7 @@ function Test-BuildToolsAreAvailable {
 function Start-Tests {
 param(
    [Parameter()]
-   [ValidateSet('unit', 'integration', 'all')]
+   [ValidateSet('unit', 'integration')]
    [string]
    $TestsType
 )
@@ -86,7 +108,11 @@ dotnet publish -c Release -o $OutputDir $dotnetProjectPath
 Get-ChildItem "$dotnetProjectName*" -Path $OutputDir  | Remove-Item -Confirm:$false
 
 # 4. Run Unit Tests
-Start-Tests -TestsType 'unit'
+if ($TestsType -eq 'unit' -or $TestsType -eq 'all') {
+   Start-Tests -TestsType 'unit'
+}
 
 # 5. Run Integration Tests
-Start-Tests -TestsType 'integration'
+if ($TestsType -eq 'integration' -or $TestsType -eq 'all') {
+   Start-Tests -TestsType 'integration'
+}

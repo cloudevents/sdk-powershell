@@ -1,0 +1,31 @@
+# **************************************************************************
+#  Copyright (c) Cloud Native Foundation.
+#  SPDX-License-Identifier: Apache-2.0
+# **************************************************************************
+
+name: Integration Tests
+
+on:
+  push:
+    branches: ["main"]
+
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  integration-tests:
+    name: Run Integration Tests
+    strategy:
+      matrix:
+        platform: ["ubuntu-latest", "windows-latest"]
+
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Run Tests
+        shell: pwsh
+        run: ./build.ps1 -TestsType integration -ExitProcess

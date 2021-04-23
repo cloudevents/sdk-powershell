@@ -27,6 +27,7 @@ if ($TestsType -eq 'unit' -or $TestsType -eq 'all') {
 
    $pesterConfiguration.Run.Path = (Join-Path $PSScriptRoot 'unit')
    $pesterConfiguration.Run.Container = $pesterContainer
+   $pesterConfiguration.Run.Exit = $EnableProcessExit.IsPresent
 
    Invoke-Pester -Configuration $pesterConfiguration
 }
@@ -42,6 +43,7 @@ if ($TestsType -eq 'integration' -or $TestsType -eq 'all') {
 
    $pesterConfiguration.Run.Path = (Join-Path $PSScriptRoot 'integration')
    $pesterConfiguration.Run.Container = $pesterContainer
+   $pesterConfiguration.Run.Exit = $EnableProcessExit.IsPresent
 
    Invoke-Pester -Configuration $pesterConfiguration
 }

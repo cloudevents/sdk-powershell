@@ -15,8 +15,11 @@
    Target directory where the CloudEvents.Sdk will be created by the script. The default is the PS Script Root
 
    .PARAMETER TestsType
-   Specifies the type of the test to be run post build. Possible values are 'none','unit', 'integration', 'all'. 
+   Specifies the type of the test to be run post build. Possible values are 'none','unit', 'integration', 'all'.
    The default is 'all'
+
+   .PARAMETER ExitProcess
+   Specifies whther to exit the running process. Exits with exit code equal to the number of failing tests.
 
 #>
 
@@ -28,7 +31,11 @@ param(
    [Parameter()]
    [ValidateSet('none','unit', 'integration', 'all')]
    [string]
-   $TestsType = 'all'
+   $TestsType = 'all',
+
+   [Parameter()]
+   [switch]
+   $ExitProcess
 )
 
 $moduleName = 'CloudEvents.Sdk'
@@ -89,7 +96,10 @@ param(
          -PassThru `
          -NoNewWindow
 
-      $testProcess | Wait-Process
+      $testProcess | Wait-Process | Out-Null
+
+      # Return the number of failed tests
+      $testProcess.ExitCode
    }
 }
 #endregion
@@ -107,12 +117,18 @@ dotnet publish -c Release -o $OutputDir $dotnetProjectPath
 # 3. Cleanup Unnecessary Outputs
 Get-ChildItem "$dotnetProjectName*" -Path $OutputDir  | Remove-Item -Confirm:$false
 
+$failedTests = 0
 # 4. Run Unit Tests
 if ($TestsType -eq 'unit' -or $TestsType -eq 'all') {
-   Start-Tests -TestsType 'unit'
+   $failedTests += (Start-Tests -TestsType 'unit')
 }
 
 # 5. Run Integration Tests
 if ($TestsType -eq 'integration' -or $TestsType -eq 'all') {
-   Start-Tests -TestsType 'integration'
+   $failedTests += (Start-Tests -TestsType 'integration')
+}
+
+# 6. Set exit code
+if ($ExitProcess.IsPresent) {
+    exit $failedTests
 }

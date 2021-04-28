@@ -16,7 +16,7 @@ Describe "ConvertTo-HttpMessage Function Tests" {
          $expectedType = 'test'
          $expectedSource  = 'urn:test'
          $expectedId  = 'test-id-1'
-         $expectedTime  = Get-Date -Year 2021 -Month 1 -Day 18 -Hour 12 -Minute 30 -Second 0
+         $expectedTime  = Get-Date -Year 2021 -Month 1 -Day 18 -Hour 12 -Minute 30 -Second 0 -Millisecond 0
          $expectedDataContentType = 'application/json'
 
          $cloudEvent = New-CloudEvent `
@@ -44,7 +44,7 @@ Describe "ConvertTo-HttpMessage Function Tests" {
          $actual.Headers['ce-source'] | Should -Be $expectedSource
          $actual.Headers['ce-specversion'] | Should -Be $expectedSpecVersion
          $actual.Headers['ce-type'] | Should -Be $expectedType
-         $actual.Headers['ce-time'] | Should -Be '2021-01-18 12:30:00Z'
+         $actual.Headers['ce-time'] | Should -Be ($expectedTime.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffZ'))
          $actual.Headers['ce-id'] | Should -Be $expectedId
 
          ## Assert Body
@@ -110,7 +110,7 @@ Describe "ConvertTo-HttpMessage Function Tests" {
          $expectedType = 'test'
          $expectedSource  = 'urn:test'
          $expectedId  = 'test-id-1'
-         $expectedTime  = Get-Date -Year 2021 -Month 1 -Day 18 -Hour 12 -Minute 30 -Second 0
+         $expectedTime  = Get-Date -Year 2021 -Month 1 -Day 18 -Hour 12 -Minute 30 -Second 0 -Millisecond 0
          $expectedDataContentType = 'application/json'
 
          $cloudEvent = New-CloudEvent `
@@ -141,7 +141,7 @@ Describe "ConvertTo-HttpMessage Function Tests" {
          $actual.Headers['ce-source'] | Should -Be $expectedSource
          $actual.Headers['ce-specversion'] | Should -Be $expectedSpecVersion
          $actual.Headers['ce-type'] | Should -Be $expectedType
-         $actual.Headers['ce-time'] | Should -Be '2021-01-18 12:30:00Z'
+         $actual.Headers['ce-time'] | Should -Be ($expectedTime.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffZ'))
          $actual.Headers['ce-id'] | Should -Be $expectedId
 
          ## Assert Body

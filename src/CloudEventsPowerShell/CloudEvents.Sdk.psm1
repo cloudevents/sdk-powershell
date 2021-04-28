@@ -556,7 +556,7 @@ PROCESS {
                $headers.Add(($HttpHeaderPrefix + $attribute.Key), $attribute.Value.ToString())
            }
            elseif ($attribute.Value -is [DateTime]) {
-               $headers.Add(($HttpHeaderPrefix + $attribute.Key), $attribute.Value.ToString("u"))
+               $headers.Add(($HttpHeaderPrefix + $attribute.Key), $attribute.Value.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffZ'))
            }
            elseif ($attribute.Value -is [Uri] -or $attribute.Value -is [int]) {
                $headers.Add(($HttpHeaderPrefix + $attribute.Key), $attribute.Value.ToString())

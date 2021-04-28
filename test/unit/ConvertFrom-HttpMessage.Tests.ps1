@@ -30,7 +30,7 @@ Describe "ConvertFrom-HttpMessage Function Tests" {
             'Content-Type' = @($expectedDataContentType, 'charset=utf-8')
             'ce-specversion' = $expectedSpecVersion
             'ce-type' = $expectedType
-            'ce-time' = $expectedTime.ToString("u")
+            'ce-time' = $expectedTime.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
             'ce-id' = $expectedId
             'ce-source' = $expectedSource
          }
@@ -139,7 +139,7 @@ Describe "ConvertFrom-HttpMessage Function Tests" {
          $structuredJsonBody = @{
             'specversion' = $expectedSpecVersion
             'type' = $expectedType
-            'time' = $expectedTime.ToString("u")
+            'time' = $expectedTime.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
             'id' = $expectedId
             'source' = $expectedSource
             'datacontenttype' = $expectedDataContentType

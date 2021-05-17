@@ -42,7 +42,14 @@ $moduleName = 'CloudEvents.Sdk'
 
 #region Input
 if (-not $OutputDir) {
-   $OutputDir = $PSScriptRoot
+    $OutputDir = $PSScriptRoot
+}
+
+# Create Output Dir if it doesn't exist
+if (-not (Test-Path $OutputDir)) {
+    New-Item -ItemType Directory -Path $OutputDir -Force -Confirm:$false | Out-Null
+    # Get the full path
+    $OutputDir = (Resolve-Path $OutputDir).Path
 }
 
 $OutputDir = Join-Path $OutputDir $moduleName
@@ -112,7 +119,7 @@ Test-BuildToolsAreAvailable
 
 # 2. Publish CloudEvents Module
 Write-InfoLog "Publish CloudEvents.Sdk Module to '$OutputDir'"
-dotnet publish -c Release -o $OutputDir $dotnetProjectPath
+dotnet publish -c Release -o $OutputDir $dotnetProjectPath | Out-Null
 
 # 3. Cleanup Unnecessary Outputs
 Get-ChildItem "$dotnetProjectName*" -Path $OutputDir  | Remove-Item -Confirm:$false
@@ -131,4 +138,6 @@ if ($TestsType -eq 'integration' -or $TestsType -eq 'all') {
 # 6. Set exit code
 if ($ExitProcess.IsPresent) {
     exit $failedTests
+} else {
+    $failedTests
 }

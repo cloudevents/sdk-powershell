@@ -8,7 +8,7 @@
 ### {{ .Title }}
 
 {{ range .Commits -}}
-- {{ .Subject }}
+- [{{ .Hash.Short }}]{{"\t"}}{{ .Subject }}{{ range .Refs }} (#{{ .Ref }}) {{ end }}
 {{ end }}
 {{ end -}}
 
@@ -16,17 +16,20 @@
 ### ⏮ Reverts
 
 {{ range .RevertCommits -}}
-- {{ .Revert.Header }}
+- [{{ .Hash.Short }}]{{"\t"}}{{ .Revert.Header }}{{ range .Refs }} (#{{ .Ref }}) {{ end }}
 {{ end }}
 {{ end -}}
 
-{{- if .NoteGroups -}}
-{{ range .NoteGroups -}}
-### ⚠️ {{ .Title }}
+### ⚠️ BREAKING
 
-{{ range .Notes }}
-{{ .Body }}
+{{ range .Commits -}}
+{{ if .Notes -}}
+{{ if not .Merge -}}
+{{ if not (contains .Header "Update CHANGELOG for" ) -}}
+{{ .Subject }} [{{ .Hash.Short }}]:{{"\n"}}{{ range .Notes }}{{ .Body }}
 {{ end }}
+{{ end -}}
+{{ end -}}
 {{ end -}}
 {{ end -}}
 
@@ -35,7 +38,7 @@
 {{ range .Commits -}}
 {{ if not .Merge -}}
 {{ if not (contains .Header "Update CHANGELOG for" ) -}}
-- {{ .Header }} [{{ .Hash.Short }}]
+- [{{ .Hash.Short }}]{{"\t"}}{{ .Header }}{{ range .Refs }} (#{{ .Ref }}) {{ end }}
 {{ end -}}
 {{ end -}}
 {{ end -}}

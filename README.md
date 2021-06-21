@@ -26,16 +26,17 @@ Install-Module CloudEvents.Sdk
 Import-Module CloudEvents.Sdk
 Get-Command -Module CloudEvents.Sdk
 
-CommandType     Name                                               Version    Source                                                                                -----------     ----                                               -------    ------
-Function        ConvertFrom-HttpMessage                            0.2.0      CloudEvents.Sdk
-Function        ConvertTo-HttpMessage                              0.2.0      CloudEvents.Sdk
-Function        New-CloudEvent                                     0.2.0      CloudEvents.Sdk
-Function        Read-CloudEventData                                0.2.0      CloudEvents.Sdk
-Function        Read-CloudEventJsonData                            0.2.0      CloudEvents.Sdk
-Function        Read-CloudEventXmlData                             0.2.0      CloudEvents.Sdk
-Function        Set-CloudEventData                                 0.2.0      CloudEvents.Sdk
-Function        Set-CloudEventJsonData                             0.2.0      CloudEvents.Sdk
-Function        Set-CloudEventXmlData                              0.2.0      CloudEvents.Sdk
+CommandType     Name                                               Version    Source
+-----------     ----                                               -------    ------
+Function        ConvertFrom-HttpMessage                            0.3.0      CloudEvents.Sdk
+Function        ConvertTo-HttpMessage                              0.3.0      CloudEvents.Sdk
+Function        New-CloudEvent                                     0.3.0      CloudEvents.Sdk
+Function        Read-CloudEventData                                0.3.0      CloudEvents.Sdk
+Function        Read-CloudEventJsonData                            0.3.0      CloudEvents.Sdk
+Function        Read-CloudEventXmlData                             0.3.0      CloudEvents.Sdk
+Function        Set-CloudEventData                                 0.3.0      CloudEvents.Sdk
+Function        Set-CloudEventJsonData                             0.3.0      CloudEvents.Sdk
+Function        Set-CloudEventXmlData                              0.3.0      CloudEvents.Sdk
 ```
 
 ## Using **`CloudEvents.Sdk`** Module
@@ -73,7 +74,7 @@ $cloudEvent | Set-CloudEventXmlData -Data @{
     'xml' = @{
         'Foo' = 'Hello'
         'Bar' = 'World'
-    }    
+    }
 } `
 -AttributesKeysInElementAttributes $true
 

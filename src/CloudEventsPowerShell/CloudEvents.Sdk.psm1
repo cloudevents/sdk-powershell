@@ -7,7 +7,7 @@ $xmlDataSerilizationLibPath = Join-Path (Join-Path $PSScriptRoot 'dataserializat
 . $xmlDataSerilizationLibPath
 
 function New-CloudEvent {
-<#
+    <#
    .SYNOPSIS
    This function creates a new cloud event.
 
@@ -35,46 +35,46 @@ function New-CloudEvent {
    Creates a cloud event with Type, Source, Id, and Time
 #>
 
-[CmdletBinding()]
-param(
-   [Parameter(Mandatory = $true)]
-   [ValidateNotNullOrEmpty()]
-   [string]
-   $Type,
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $Type,
 
-   [Parameter(Mandatory = $true)]
-   [ValidateNotNullOrEmpty()]
-   [System.Uri]
-   $Source,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.Uri]
+        $Source,
 
-   [Parameter(Mandatory = $true)]
-   [ValidateNotNullOrEmpty()]
-   [string]
-   $Id,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $Id,
 
-   [Parameter(Mandatory = $false)]
-   [ValidateNotNullOrEmpty()]
-   [DateTime]
-   $Time
-)
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [DateTime]
+        $Time
+    )
 
-PROCESS {
-   $cloudEvent = New-Object `
-      -TypeName 'CloudNative.CloudEvents.CloudEvent' `
-      -ArgumentList @(
-         $Type,
-         $Source,
-         $Id,
-         $Time,
-         @())
+    PROCESS {
+        $cloudEvent = New-Object `
+            -TypeName 'CloudNative.CloudEvents.CloudEvent' `
+            -ArgumentList @(
+            $Type,
+            $Source,
+            $Id,
+            $Time,
+            @())
 
-   Write-Output $cloudEvent
-}
+        Write-Output $cloudEvent
+    }
 }
 
 #region Set Data Functions
 function Set-CloudEventData {
-<#
+    <#
    .SYNOPSIS
    This function sets data in a cloud event.
 
@@ -98,45 +98,45 @@ function Set-CloudEventData {
    Sets xml data to the cloud event
 #>
 
-[CmdletBinding()]
-param(
-   [Parameter(Mandatory = $true,
-              ValueFromPipeline = $true)]
-   [ValidateNotNullOrEmpty()]
-   [CloudNative.CloudEvents.CloudEvent]
-   $CloudEvent,
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true,
+            ValueFromPipeline = $true)]
+        [ValidateNotNullOrEmpty()]
+        [CloudNative.CloudEvents.CloudEvent]
+        $CloudEvent,
 
-   [Parameter(Mandatory = $true,
-              ValueFromPipeline = $false)]
-   [ValidateNotNullOrEmpty()]
-   [object]
-   $Data,
+        [Parameter(Mandatory = $true,
+            ValueFromPipeline = $false)]
+        [ValidateNotNullOrEmpty()]
+        [object]
+        $Data,
 
-   # CloudEvent 'datacontenttype' attribute. Content type of the 'data' attribute value.
-   # This attribute enables the data attribute to carry any type of content, whereby
-   # format and encoding might differ from that of the chosen event format.
-   [Parameter(Mandatory = $false,
-              ValueFromPipeline = $false)]
-   [string]
-   $DataContentType)
+        # CloudEvent 'datacontenttype' attribute. Content type of the 'data' attribute value.
+        # This attribute enables the data attribute to carry any type of content, whereby
+        # format and encoding might differ from that of the chosen event format.
+        [Parameter(Mandatory = $false,
+            ValueFromPipeline = $false)]
+        [string]
+        $DataContentType)
 
-PROCESS {
+    PROCESS {
 
-    # https://github.com/cloudevents/spec/blob/master/spec.md#datacontenttype
-   $contentType = New-Object `
-      -TypeName 'System.Net.Mime.ContentType' `
-      -ArgumentList ($DataContentType)
+        # https://github.com/cloudevents/spec/blob/master/spec.md#datacontenttype
+        $contentType = New-Object `
+            -TypeName 'System.Net.Mime.ContentType' `
+            -ArgumentList ($DataContentType)
 
-   $cloudEvent.Data = $Data
-   $cloudEvent.DataContentType = $dataContentType
+        $cloudEvent.Data = $Data
+        $cloudEvent.DataContentType = $dataContentType
 
-   Write-Output $CloudEvent
-}
+        Write-Output $CloudEvent
+    }
 
 }
 
 function Set-CloudEventJsonData {
-<#
+    <#
    .SYNOPSIS
    This function sets JSON format data in a cloud event.
 
@@ -163,43 +163,43 @@ function Set-CloudEventJsonData {
    Sets JSON data to the cloud event
 #>
 
-[CmdletBinding()]
-param(
-   [Parameter(Mandatory = $true,
-              ValueFromPipeline = $true)]
-   [ValidateNotNullOrEmpty()]
-   [CloudNative.CloudEvents.CloudEvent]
-   $CloudEvent,
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true,
+            ValueFromPipeline = $true)]
+        [ValidateNotNullOrEmpty()]
+        [CloudNative.CloudEvents.CloudEvent]
+        $CloudEvent,
 
-   [Parameter(Mandatory = $true,
-              ValueFromPipeline = $false)]
-   [ValidateNotNull()]
-   [Hashtable]
-   $Data,
+        [Parameter(Mandatory = $true,
+            ValueFromPipeline = $false)]
+        [ValidateNotNull()]
+        [Hashtable]
+        $Data,
 
-   [Parameter(Mandatory = $false,
-              ValueFromPipeline = $false)]
-   [int]
-   $Depth = 3)
+        [Parameter(Mandatory = $false,
+            ValueFromPipeline = $false)]
+        [int]
+        $Depth = 3)
 
-PROCESS {
+    PROCESS {
 
-    # DataContentType is set to 'application/json'
-    # https://github.com/cloudevents/spec/blob/master/spec.md#datacontenttype
-   $dataContentType = New-Object `
-      -TypeName 'System.Net.Mime.ContentType' `
-      -ArgumentList ([System.Net.Mime.MediaTypeNames+Application]::Json)
+        # DataContentType is set to 'application/json'
+        # https://github.com/cloudevents/spec/blob/master/spec.md#datacontenttype
+        $dataContentType = New-Object `
+            -TypeName 'System.Net.Mime.ContentType' `
+            -ArgumentList ([System.Net.Mime.MediaTypeNames+Application]::Json)
 
-   $cloudEvent.DataContentType = $dataContentType
-   $cloudEvent.Data = ConvertTo-Json -InputObject $Data -Depth $Depth
+        $cloudEvent.DataContentType = $dataContentType
+        $cloudEvent.Data = ConvertTo-Json -InputObject $Data -Depth $Depth
 
-   Write-Output $CloudEvent
-}
+        Write-Output $CloudEvent
+    }
 
 }
 
 function Set-CloudEventXmlData {
-<#
+    <#
    .SYNOPSIS
    This function sets XML format data in a cloud event.
 
@@ -229,43 +229,43 @@ function Set-CloudEventXmlData {
    Sets XML data in the cloud event
 #>
 
-[CmdletBinding()]
-param(
-   [Parameter(Mandatory = $true,
-              ValueFromPipeline = $true)]
-   [ValidateNotNullOrEmpty()]
-   [CloudNative.CloudEvents.CloudEvent]
-   $CloudEvent,
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true,
+            ValueFromPipeline = $true)]
+        [ValidateNotNullOrEmpty()]
+        [CloudNative.CloudEvents.CloudEvent]
+        $CloudEvent,
 
-   [Parameter(Mandatory = $true,
-              ValueFromPipeline = $false)]
-   [ValidateNotNull()]
-   [Hashtable]
-   $Data,
+        [Parameter(Mandatory = $true,
+            ValueFromPipeline = $false)]
+        [ValidateNotNull()]
+        [Hashtable]
+        $Data,
 
-   [Parameter(Mandatory = $true)]
-   [bool]
-   $AttributesKeysInElementAttributes)
+        [Parameter(Mandatory = $true)]
+        [bool]
+        $AttributesKeysInElementAttributes)
 
-PROCESS {
+    PROCESS {
 
-    # DataContentType is set to 'application/xml'
-   $dataContentType = New-Object `
-      -TypeName 'System.Net.Mime.ContentType' `
-      -ArgumentList ([System.Net.Mime.MediaTypeNames+Application]::Xml)
+        # DataContentType is set to 'application/xml'
+        $dataContentType = New-Object `
+            -TypeName 'System.Net.Mime.ContentType' `
+            -ArgumentList ([System.Net.Mime.MediaTypeNames+Application]::Xml)
 
-   $cloudEvent.DataContentType = $dataContentType
-   $cloudEvent.Data = ConvertTo-CEDataXml -InputObject $Data -AttributesKeysInElementAttributes $AttributesKeysInElementAttributes
+        $cloudEvent.DataContentType = $dataContentType
+        $cloudEvent.Data = ConvertTo-CEDataXml -InputObject $Data -AttributesKeysInElementAttributes $AttributesKeysInElementAttributes
 
-   Write-Output $CloudEvent
-}
+        Write-Output $CloudEvent
+    }
 
 }
 #endregion Set Data Functions
 
 #region Read Data Functions
 function Read-CloudEventData {
-<#
+    <#
    .SYNOPSIS
    This function gets the data from a cloud event.
 
@@ -282,23 +282,23 @@ function Read-CloudEventData {
    Reads data from a cloud event received on the http response
 #>
 
-[CmdletBinding()]
-param(
-   [Parameter(Mandatory = $true,
-              ValueFromPipeline = $true)]
-   [ValidateNotNullOrEmpty()]
-   [CloudNative.CloudEvents.CloudEvent]
-   $CloudEvent
-)
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true,
+            ValueFromPipeline = $true)]
+        [ValidateNotNullOrEmpty()]
+        [CloudNative.CloudEvents.CloudEvent]
+        $CloudEvent
+    )
 
-PROCESS {
-   Write-Output $CloudEvent.Data
-}
+    PROCESS {
+        Write-Output $CloudEvent.Data
+    }
 
 }
 
 function Read-CloudEventJsonData {
-<#
+    <#
    .SYNOPSIS
    This function gets JSON fromat data from a cloud event as a PowerShell hashtable.
 
@@ -320,56 +320,57 @@ function Read-CloudEventJsonData {
 #>
 
 
-<#
+    <#
    .DESCRIPTION
    Returns PowerShell hashtable that represents the CloudEvent Json Data
    if the data content type is 'application/json', otherwise otherwise non-terminating error and no result
 #>
 
-[CmdletBinding()]
-param(
-   [Parameter(Mandatory = $true,
-              ValueFromPipeline = $true)]
-   [ValidateNotNullOrEmpty()]
-   [CloudNative.CloudEvents.CloudEvent]
-   $CloudEvent,
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true,
+            ValueFromPipeline = $true)]
+        [ValidateNotNullOrEmpty()]
+        [CloudNative.CloudEvents.CloudEvent]
+        $CloudEvent,
 
-   [Parameter(Mandatory = $false,
-              ValueFromPipeline = $false)]
-   [int]
-   $Depth = 3
-)
+        [Parameter(Mandatory = $false,
+            ValueFromPipeline = $false)]
+        [int]
+        $Depth = 3
+    )
 
-PROCESS {
+    PROCESS {
 
-    # DataContentType is expected to be 'application/json'
-    # https://github.com/cloudevents/spec/blob/master/spec.md#datacontenttype
-   $dataContentType = New-Object `
-      -TypeName 'System.Net.Mime.ContentType' `
-      -ArgumentList ([System.Net.Mime.MediaTypeNames+Application]::Json)
+        # DataContentType is expected to be 'application/json'
+        # https://github.com/cloudevents/spec/blob/master/spec.md#datacontenttype
+        $dataContentType = New-Object `
+            -TypeName 'System.Net.Mime.ContentType' `
+            -ArgumentList ([System.Net.Mime.MediaTypeNames+Application]::Json)
 
-   if ($CloudEvent.DataContentType -eq $dataContentType -or `
-       ($CloudEvent.DataContentType -eq $null -and ` # Datacontent Type is Optional, if it is not specified we assume it is JSON as per https://github.com/cloudevents/spec/blob/v1.0.1/spec.md#datacontenttype
-        $cloudEvent.Data -is [Newtonsoft.Json.Linq.JObject])) {
+        if ($CloudEvent.DataContentType -eq $dataContentType -or `
+            ($CloudEvent.DataContentType -eq $null -and # Datacontent Type is Optional, if it is not specified we assume it is JSON as per https://github.com/cloudevents/spec/blob/v1.0.1/spec.md#datacontenttype
+                $cloudEvent.Data -is [Newtonsoft.Json.Linq.JObject])) {
 
-      $data = $cloudEvent.Data
+            $data = $cloudEvent.Data
 
-      if ($cloudEvent.Data -is [byte[]]) {
-         $data = [System.Text.Encoding]::UTF8.GetString($data)
-      }
+            if ($cloudEvent.Data -is [byte[]]) {
+                $data = [System.Text.Encoding]::UTF8.GetString($data)
+            }
 
-      $result = $data.ToString() | ConvertFrom-Json -AsHashtable -Depth $Depth
+            $result = $data.ToString() | ConvertFrom-Json -AsHashtable -Depth $Depth
 
-      Write-Output $result
-   } else {
-      Write-Error "Cloud Event '$($cloudEvent.Id)' has no json data"
-   }
-}
+            Write-Output $result
+        }
+        else {
+            Write-Error "Cloud Event '$($cloudEvent.Id)' has no json data"
+        }
+    }
 
 }
 
 function Read-CloudEventXmlData {
-<#
+    <#
    .SYNOPSIS
    This function gets XML fromat data from a cloud event as a PowerShell hashtable.
 
@@ -430,55 +431,56 @@ function Read-CloudEventXmlData {
 #>
 
 
-<#
+    <#
    .DESCRIPTION
    Returns PowerShell hashtable that represents the CloudEvent Xml Data
    if the data content type is 'application/xml', otherwise non-terminating error and no result
 #>
 
-[CmdletBinding()]
-param(
-   [Parameter(Mandatory = $true,
-              ValueFromPipeline = $true)]
-   [ValidateNotNullOrEmpty()]
-   [CloudNative.CloudEvents.CloudEvent]
-   $CloudEvent,
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true,
+            ValueFromPipeline = $true)]
+        [ValidateNotNullOrEmpty()]
+        [CloudNative.CloudEvents.CloudEvent]
+        $CloudEvent,
 
-   [Parameter(Mandatory = $true)]
-   [ValidateSet("SkipAttributes", "AlwaysAttrValue", "AttrValueWhenAttributes")]
-   [string]
-   $ConvertMode
-)
+        [Parameter(Mandatory = $true)]
+        [ValidateSet("SkipAttributes", "AlwaysAttrValue", "AttrValueWhenAttributes")]
+        [string]
+        $ConvertMode
+    )
 
-PROCESS {
+    PROCESS {
 
-    # DataContentType is expected to be 'application/xml'
-   $dataContentType = New-Object `
-      -TypeName 'System.Net.Mime.ContentType' `
-      -ArgumentList ([System.Net.Mime.MediaTypeNames+Application]::Xml)
+        # DataContentType is expected to be 'application/xml'
+        $dataContentType = New-Object `
+            -TypeName 'System.Net.Mime.ContentType' `
+            -ArgumentList ([System.Net.Mime.MediaTypeNames+Application]::Xml)
 
-   if ($CloudEvent.DataContentType -eq $dataContentType) {
+        if ($CloudEvent.DataContentType -eq $dataContentType) {
 
-      $data = $cloudEvent.Data
+            $data = $cloudEvent.Data
 
-      if ($cloudEvent.Data -is [byte[]]) {
-         $data = [System.Text.Encoding]::UTF8.GetString($data)
-      }
+            if ($cloudEvent.Data -is [byte[]]) {
+                $data = [System.Text.Encoding]::UTF8.GetString($data)
+            }
 
-      $result = $data.ToString() | ConvertFrom-CEDataXml -ConvertMode $ConvertMode
+            $result = $data.ToString() | ConvertFrom-CEDataXml -ConvertMode $ConvertMode
 
-      Write-Output $result
-   } else {
-      Write-Error "Cloud Event '$($cloudEvent.Id)' has no xml data"
-   }
-}
+            Write-Output $result
+        }
+        else {
+            Write-Error "Cloud Event '$($cloudEvent.Id)' has no xml data"
+        }
+    }
 
 }
 #endregion Read Data Functions
 
 #region HTTP Protocol Binding Conversion Functions
 function ConvertTo-HttpMessage {
-<#
+    <#
    .SYNOPSIS
    This function converts a cloud event object to a Http Message.
 
@@ -519,121 +521,121 @@ function ConvertTo-HttpMessage {
    Sends a cloud event http requests to a server
 #>
 
-[CmdletBinding()]
-param(
-   [Parameter(
-      Mandatory = $true,
-      ValueFromPipeline = $true,
-      ValueFromPipelineByPropertyName = $false)]
-   [ValidateNotNull()]
-   [CloudNative.CloudEvents.CloudEvent]
-   $CloudEvent,
+    [CmdletBinding()]
+    param(
+        [Parameter(
+            Mandatory = $true,
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $false)]
+        [ValidateNotNull()]
+        [CloudNative.CloudEvents.CloudEvent]
+        $CloudEvent,
 
-   [Parameter(
-      Mandatory = $true,
-      ValueFromPipeline = $false,
-      ValueFromPipelineByPropertyName = $false)]
-   [CloudNative.CloudEvents.ContentMode]
-   $ContentMode)
+        [Parameter(
+            Mandatory = $true,
+            ValueFromPipeline = $false,
+            ValueFromPipelineByPropertyName = $false)]
+        [CloudNative.CloudEvents.ContentMode]
+        $ContentMode)
 
-PROCESS {
-   # Output Object
-   $result = New-Object -TypeName PSCustomObject
+    PROCESS {
+        # Output Object
+        $result = New-Object -TypeName PSCustomObject
 
-   $cloudEventFormatter = New-Object 'CloudNative.CloudEvents.JsonEventFormatter'
+        $cloudEventFormatter = New-Object 'CloudNative.CloudEvents.JsonEventFormatter'
 
-   $HttpHeaderPrefix = "ce-";
-   $SpecVersionHttpHeader1 = $HttpHeaderPrefix + "cloudEventsVersion";
-   $SpecVersionHttpHeader2 = $HttpHeaderPrefix + "specversion";
+        $HttpHeaderPrefix = "ce-";
+        $SpecVersionHttpHeader1 = $HttpHeaderPrefix + "cloudEventsVersion";
+        $SpecVersionHttpHeader2 = $HttpHeaderPrefix + "specversion";
 
-   $headers = @{}
+        $headers = @{}
 
-   # Build HTTP headers
-   foreach ($attribute in $cloudEvent.GetAttributes()) {
-       if (-not $attribute.Key.Equals([CloudNative.CloudEvents.CloudEventAttributes]::DataAttributeName($cloudEvent.SpecVersion)) -and `
-           -not $attribute.Key.Equals([CloudNative.CloudEvents.CloudEventAttributes]::DataContentTypeAttributeName($cloudEvent.SpecVersion))) {
-           if ($attribute.Value -is [string]) {
-               $headers.Add(($HttpHeaderPrefix + $attribute.Key), $attribute.Value.ToString())
-           }
-           elseif ($attribute.Value -is [DateTime]) {
-               $headers.Add(($HttpHeaderPrefix + $attribute.Key), $attribute.Value.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffZ'))
-           }
-           elseif ($attribute.Value -is [Uri] -or $attribute.Value -is [int]) {
-               $headers.Add(($HttpHeaderPrefix + $attribute.Key), $attribute.Value.ToString())
-           }
-           else
-           {
-               $headers.Add(($HttpHeaderPrefix + $attribute.Key),
-                   [System.Text.Encoding]::UTF8.GetString($cloudEventFormatter.EncodeAttribute($cloudEvent.SpecVersion, $attribute.Key,
-                       $attribute.Value,
-                       $cloudEvent.Extensions.Values)));
-           }
-       }
-   }
-
-   # Add Headers property to the output object
-   $result | Add-Member -MemberType NoteProperty -Name 'Headers' -Value $headers
-
-   # Process Structured Mode
-   # Structured Mode supports non-batching JSON format only
-   # https://github.com/cloudevents/spec/blob/v1.0.1/http-protocol-binding.md#14-event-formats
-   if ($ContentMode -eq [CloudNative.CloudEvents.ContentMode]::Structured) {
-      # Format Body as byte[]
-      $contentType = $null
-
-      # CloudEventFormatter is instance of 'CloudNative.CloudEvents.JsonEventFormatter' from the
-      # .NET CloudEvents SDK for the purpose of fomatting structured mode
-      $buffer = $cloudEventFormatter.EncodeStructuredEvent($cloudEvent, [ref] $contentType)
-      $result | Add-Member -MemberType NoteProperty -Name 'Body' -Value $buffer
-      $result.Headers.Add('Content-Type', $contentType)
-   }
-
-   # Process Binary Mode
-   if ($ContentMode -eq [CloudNative.CloudEvents.ContentMode]::Binary) {
-      $bodyData = $null
-
-      if ($cloudEvent.DataContentType -ne $null) {
-         $result.Headers.Add('Content-Type', $cloudEvent.DataContentType)
-      }
-
-      if ($cloudEvent.Data -is [byte[]]) {
-         $bodyData = $cloudEvent.Data
-      }
-      elseif ($cloudEvent.Data -is [string]) {
-         $bodyData = [System.Text.Encoding]::UTF8.GetBytes($cloudEvent.Data.ToString())
-      }
-      elseif ($cloudEvent.Data -is [IO.Stream]) {
-         $buffer = New-Object 'byte[]' -ArgumentList 1024
-
-         $ms = New-Object 'IO.MemoryStream'
-
-         try {
-            $read = 0
-            while (($read = $cloudEvent.Data.Read($buffer, 0, 1024)) -gt 0)
-            {
-               $ms.Write($buffer, 0, $read);
+        # Build HTTP headers
+        foreach ($attribute in $cloudEvent.GetAttributes()) {
+            if (-not $attribute.Key.Equals([CloudNative.CloudEvents.CloudEventAttributes]::DataAttributeName($cloudEvent.SpecVersion)) -and `
+                    -not $attribute.Key.Equals([CloudNative.CloudEvents.CloudEventAttributes]::DataContentTypeAttributeName($cloudEvent.SpecVersion))) {
+                if ($attribute.Value -is [string]) {
+                    $headers.Add(($HttpHeaderPrefix + $attribute.Key), $attribute.Value.ToString())
+                }
+                elseif ($attribute.Value -is [DateTime]) {
+                    $headers.Add(($HttpHeaderPrefix + $attribute.Key), $attribute.Value.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffZ'))
+                }
+                elseif ($attribute.Value -is [Uri] -or $attribute.Value -is [int]) {
+                    $headers.Add(($HttpHeaderPrefix + $attribute.Key), $attribute.Value.ToString())
+                }
+                else {
+                    $headers.Add(($HttpHeaderPrefix + $attribute.Key),
+                        [System.Text.Encoding]::UTF8.GetString($cloudEventFormatter.EncodeAttribute($cloudEvent.SpecVersion, $attribute.Key,
+                                $attribute.Value,
+                                $cloudEvent.Extensions.Values)));
+                }
             }
-            $bodyData = $ms.ToArray()
-         } finally {
-            $ms.Dispose()
-         }
+        }
 
-      } else {
-         $bodyData = $cloudEventFormatter.EncodeAttribute($cloudEvent.SpecVersion,
-            [CloudNative.CloudEvents.CloudEventAttributes]::DataAttributeName($cloudEvent.SpecVersion),
-            $cloudEvent.Data, $cloudEvent.Extensions.Values)
-      }
+        # Add Headers property to the output object
+        $result | Add-Member -MemberType NoteProperty -Name 'Headers' -Value $headers
 
-      # Add Body property to the output object
-      $result | Add-Member -MemberType NoteProperty -Name 'Body' -Value $bodyData
-   }
+        # Process Structured Mode
+        # Structured Mode supports non-batching JSON format only
+        # https://github.com/cloudevents/spec/blob/v1.0.1/http-protocol-binding.md#14-event-formats
+        if ($ContentMode -eq [CloudNative.CloudEvents.ContentMode]::Structured) {
+            # Format Body as byte[]
+            $contentType = $null
 
-   Write-Output $result
-}
+            # CloudEventFormatter is instance of 'CloudNative.CloudEvents.JsonEventFormatter' from the
+            # .NET CloudEvents SDK for the purpose of fomatting structured mode
+            $buffer = $cloudEventFormatter.EncodeStructuredEvent($cloudEvent, [ref] $contentType)
+            $result | Add-Member -MemberType NoteProperty -Name 'Body' -Value $buffer
+            $result.Headers.Add('Content-Type', $contentType)
+        }
+
+        # Process Binary Mode
+        if ($ContentMode -eq [CloudNative.CloudEvents.ContentMode]::Binary) {
+            $bodyData = $null
+
+            if ($cloudEvent.DataContentType -ne $null) {
+                $result.Headers.Add('Content-Type', $cloudEvent.DataContentType)
+            }
+
+            if ($cloudEvent.Data -is [byte[]]) {
+                $bodyData = $cloudEvent.Data
+            }
+            elseif ($cloudEvent.Data -is [string]) {
+                $bodyData = [System.Text.Encoding]::UTF8.GetBytes($cloudEvent.Data.ToString())
+            }
+            elseif ($cloudEvent.Data -is [IO.Stream]) {
+                $buffer = New-Object 'byte[]' -ArgumentList 1024
+
+                $ms = New-Object 'IO.MemoryStream'
+
+                try {
+                    $read = 0
+                    while (($read = $cloudEvent.Data.Read($buffer, 0, 1024)) -gt 0) {
+                        $ms.Write($buffer, 0, $read);
+                    }
+                    $bodyData = $ms.ToArray()
+                }
+                finally {
+                    $ms.Dispose()
+                }
+
+            }
+            else {
+                $bodyData = $cloudEventFormatter.EncodeAttribute($cloudEvent.SpecVersion,
+                    [CloudNative.CloudEvents.CloudEventAttributes]::DataAttributeName($cloudEvent.SpecVersion),
+                    $cloudEvent.Data, $cloudEvent.Extensions.Values)
+            }
+
+            # Add Body property to the output object
+            $result | Add-Member -MemberType NoteProperty -Name 'Body' -Value $bodyData
+        }
+
+        Write-Output $result
+    }
 }
 
 function ConvertFrom-HttpMessage {
-<#
+    <#
    .SYNOPSIS
    This function converts a Http Message to a cloud event object
 
@@ -655,136 +657,150 @@ function ConvertFrom-HttpMessage {
    Converts a http response to a cloud event object
 #>
 
-[CmdletBinding()]
-param(
-   [Parameter(
-      Mandatory = $true,
-      ValueFromPipeline = $false,
-      ValueFromPipelineByPropertyName = $false)]
-   [ValidateNotNull()]
-   [hashtable]
-   $Headers,
+    [CmdletBinding()]
+    param(
+        [Parameter(
+            Mandatory = $true,
+            ValueFromPipeline = $false,
+            ValueFromPipelineByPropertyName = $false)]
+        [ValidateNotNull()]
+        [hashtable]
+        $Headers,
 
-   [Parameter(
-      Mandatory = $false,
-      ValueFromPipeline = $false,
-      ValueFromPipelineByPropertyName = $false)]
-   [ValidateNotNull()]
-   $Body)
+        [Parameter(
+            Mandatory = $false,
+            ValueFromPipeline = $false,
+            ValueFromPipelineByPropertyName = $false)]
+        [ValidateNotNull()]
+        $Body)
 
-PROCESS {
-   $HttpHeaderPrefix = "ce-";
-   $SpecVersionHttpHeader1 = $HttpHeaderPrefix + "cloudEventsVersion";
-   $SpecVersionHttpHeader2 = $HttpHeaderPrefix + "specversion";
+    PROCESS {
+        $HttpHeaderPrefix = "ce-";
+        $SpecVersionHttpHeader = $HttpHeaderPrefix + "specversion";
 
-   $result = $null
+        $result = $null
 
-   # Always Convert Body to byte[]
-   # Conversion works with byte[] while
-   # body can be string in HTTP responses
-   # for text content type
-   if ($Body -is [string]) {
-      $Body = [System.Text.Encoding]::UTF8.GetBytes($Body)
-   }
+        # Always Convert Body to byte[]
+        # Conversion works with byte[] while
+        # body can be string in HTTP responses
+        # for text content type
+        if ($Body -is [string]) {
+            $Body = [System.Text.Encoding]::UTF8.GetBytes($Body)
+        }
 
-   if ($Headers['Content-Type'] -ne $null) {
-      $ContentType = $Headers['Content-Type']
-      if ($ContentType -is [array]) {
-         # Get the first content-type value
-         $ContentType = $ContentType[0]
-      }
-
-      if ($ContentType.StartsWith([CloudNative.CloudEvents.CloudEvent]::MediaType,
-                       [StringComparison]::InvariantCultureIgnoreCase)) {
-
-         # Handle Structured Mode
-         $ctParts = $ContentType.Split(';')
-         if ($ctParts[0].Trim().StartsWith(([CloudNative.CloudEvents.CloudEvent]::MediaType) + ([CloudNative.CloudEvents.JsonEventFormatter]::MediaTypeSuffix),
-            [StringComparison]::InvariantCultureIgnoreCase)) {
-
-            # Structured Mode supports non-batching JSON format only
-            # https://github.com/cloudevents/spec/blob/v1.0.1/http-protocol-binding.md#14-event-formats
-
-            # .NET SDK 'CloudNative.CloudEvents.JsonEventFormatter' type is used
-            # to decode the Structured Mode CloudEvents
-
-            $json = [System.Text.Encoding]::UTF8.GetString($Body)
-            $jObject = [Newtonsoft.Json.Linq.JObject]::Parse($json)
-            $formatter = New-Object 'CloudNative.CloudEvents.JsonEventFormatter'
-            $result = $formatter.DecodeJObject($jObject, $null)
-
-            $result.Data = $result.Data
-         } else {
-            # Throw error for unsupported encoding
-            throw "Unsupported CloudEvents encoding"
-         }
-      } else {
-         # Handle  Binary Mode
-         $version = [CloudNative.CloudEvents.CloudEventsSpecVersion]::Default
-         if ($Headers.Contains($SpecVersionHttpHeader1)) {
-            $version = [CloudNative.CloudEvents.CloudEventsSpecVersion]::V0_1
-         }
-
-         if ($Headers.Contains($SpecVersionHttpHeader2)) {
-            if ($Headers[$SpecVersionHttpHeader2][0] -eq "0.2") {
-               $version = [CloudNative.CloudEvents.CloudEventsSpecVersion]::V0_2
-            } elseif ($Headers[$SpecVersionHttpHeader2][0] -eq "0.3") {
-               $version = [CloudNative.CloudEvents.CloudEventsSpecVersion]::V0_3
+        if ($null -ne $Headers['Content-Type']) {
+            $ContentType = $Headers['Content-Type']
+            if ($ContentType -is [array]) {
+                # Get the first content-type value
+                $ContentType = $ContentType[0]
             }
-         }
 
-         $cloudEvent = New-Object `
-                        -TypeName 'CloudNative.CloudEvents.CloudEvent' `
-                        -ArgumentList @($version, $null);
+            if ($ContentType.StartsWith([CloudNative.CloudEvents.CloudEvent]::MediaType,
+                    [StringComparison]::InvariantCultureIgnoreCase)) {
 
-         $attributes = $cloudEvent.GetAttributes();
+                # Handle Structured Mode
+                $ctParts = $ContentType.Split(';')
+                if ($ctParts[0].Trim().StartsWith(([CloudNative.CloudEvents.CloudEvent]::MediaType) + ([CloudNative.CloudEvents.JsonEventFormatter]::MediaTypeSuffix),
+                        [StringComparison]::InvariantCultureIgnoreCase)) {
 
-         # Get attributes from HTTP Headers
-         foreach ($httpHeader in $Headers.GetEnumerator()) {
-           if ($httpHeader.Key.Equals($SpecVersionHttpHeader1, [StringComparison]::InvariantCultureIgnoreCase) -or `
-               $httpHeader.Key.Equals($SpecVersionHttpHeader2, [StringComparison]::InvariantCultureIgnoreCase)) {
-               continue
-           }
+                    # Structured Mode supports non-batching JSON format only
+                    # https://github.com/cloudevents/spec/blob/v1.0.1/http-protocol-binding.md#14-event-formats
 
-           if ($httpHeader.Key.StartsWith($HttpHeaderPrefix, [StringComparison]::InvariantCultureIgnoreCase)) {
-               $headerValue = $httpHeader.Value
-               if ($headerValue -is [array]) {
-                  # Get the first object
-                  $headerValue = $headerValue[0]
-               }
-               $name = $httpHeader.Key.Substring(3);
+                    # .NET SDK 'CloudNative.CloudEvents.JsonEventFormatter' type is used
+                    # to decode the Structured Mode CloudEvents
 
-               # Abolished structures in headers in 1.0
-               if ($version -ne [CloudNative.CloudEvents.CloudEventsSpecVersion]::V0_1 -and `
-                   $headerValue -ne $null -and `
-                   $headerValue.StartsWith('"') -and `
-                   $headerValue.EndsWith('"') -or `
-                   $headerValue.StartsWith("'") -and $headerValue.EndsWith("'") -or `
-                   $headerValue.StartsWith("{") -and $headerValue.EndsWith("}") -or `
-                   $headerValue.StartsWith("[") -and $headerValue.EndsWith("]")) {
+                    $json = [System.Text.Encoding]::UTF8.GetString($Body)
+                    $jObject = [Newtonsoft.Json.Linq.JObject]::Parse($json)
+                    $formatter = New-Object 'CloudNative.CloudEvents.JsonEventFormatter'
+                    $result = $formatter.DecodeJObject($jObject, $null)
 
-                  $jsonFormatter = New-Object 'CloudNative.CloudEvents.JsonEventFormatter'
+                    $result.Data = $result.Data
+                }
+                else {
+                    # Throw error for unsupported encoding
+                    throw "Unsupported CloudEvents encoding"
+                }
+            }
+            else {
+                # Handle  Binary Mode
+                $version = $null
+                if ($Headers.Contains($SpecVersionHttpHeader) -and `
+                    $null -ne $Headers[$SpecVersionHttpHeader] -and `
+                   ($Headers[$SpecVersionHttpHeader] | Select-Object -First 1).StartsWith('1.0')) {
+                    # We do support the 1.0 cloud event version
+                    $version = [CloudNative.CloudEvents.CloudEventsSpecVersion]::V1_0
+                }
 
-                  $attributes[$name] = $jsonFormatter.DecodeAttribute($version, $name,
-                       [System.Text.Encoding]::UTF8.GetBytes($headerValue), $null);
-               } else {
-                  $attributes[$name] = $headerValue
-               }
-           }
-         }
+                if ($null -ne $version) {
+                    # SpecVersion is REQUIRED attribute, it it is not specified this is not a CloudEvent
+                    # https://github.com/cloudevents/spec/blob/v1.0.1/spec.md#specversion
+                    $cloudEvent = New-Object `
+                    -TypeName 'CloudNative.CloudEvents.CloudEvent' `
+                    -ArgumentList @($version, $null);
 
-         if ($Headers['Content-Type'] -ne $null -and $Headers['Content-Type'][0] -is [string]) {
-            $cloudEvent.DataContentType = New-Object 'System.Net.Mime.ContentType' -ArgumentList @($Headers['Content-Type'][0])
-         }
+                    $attributes = $cloudEvent.GetAttributes();
 
-         # Get Data from HTTP Body
-         $cloudEvent.Data = $Body
+                    # Get attributes from HTTP Headers
+                    foreach ($httpHeader in $Headers.GetEnumerator()) {
+                        if ($httpHeader.Key.Equals($SpecVersionHttpHeader, [StringComparison]::InvariantCultureIgnoreCase)) {
+                            continue
+                        }
 
-         $result = $cloudEvent
-      }
-   }
+                        if ($httpHeader.Key.StartsWith($HttpHeaderPrefix, [StringComparison]::InvariantCultureIgnoreCase)) {
+                            $headerValue = $httpHeader.Value
+                            if ($headerValue -is [array]) {
+                                # Get the first object
+                                $headerValue = $headerValue[0]
+                            }
+                            $name = $httpHeader.Key.Substring(3);
 
-   Write-Output $result
-}
+                            # Abolished structures in headers in 1.0
+                            if ( $null -ne $headerValue -and `
+                                 $headerValue.StartsWith('"') -and `
+                                 $headerValue.EndsWith('"') -or `
+                                 $headerValue.StartsWith("'") -and $headerValue.EndsWith("'") -or `
+                                 $headerValue.StartsWith("{") -and $headerValue.EndsWith("}") -or `
+                                 $headerValue.StartsWith("[") -and $headerValue.EndsWith("]")) {
+
+                                $jsonFormatter = New-Object 'CloudNative.CloudEvents.JsonEventFormatter'
+
+                                $attributes[$name] = $jsonFormatter.DecodeAttribute($version, $name,
+                                    [System.Text.Encoding]::UTF8.GetBytes($headerValue), $null);
+                            }
+                            else {
+                                $attributes[$name] = $headerValue
+                            }
+                        }
+                    }
+
+                    # Verify parsed attributes from HTTP Headers
+                    if ($null -ne $attributes['datacontenttype']) {
+                        # ce-datatype is prohibitted by the protocol -> throw error
+                        # https://github.com/cloudevents/spec/blob/v1.0.1/http-protocol-binding.md#311-http-content-type
+                        throw "'ce-datacontenttype' HTTP header is prohibited for Binary ContentMode CloudEvent"
+                    }
+
+                    if ($Headers['Content-Type'] -is [string]) {
+                        $cloudEvent.DataContentType = New-Object 'System.Net.Mime.ContentType' -ArgumentList @($Headers['Content-Type'])
+                    } elseif ($Headers['Content-Type'][0] -is [string]) {
+                        $cloudEvent.DataContentType = New-Object 'System.Net.Mime.ContentType' -ArgumentList @($Headers['Content-Type'][0])
+                    }
+
+                    # Id, Type, and Source are reuiqred to be non-empty strings otherwise consider this is not a CloudEvent
+                    # https://github.com/cloudevents/spec/blob/v1.0.1/spec.md#required-attributes
+                    if ( -not [string]::IsNullOrEmpty($cloudEvent.Id) -and `
+                         -not [string]::IsNullOrEmpty($cloudEvent.Source) -and `
+                         -not [string]::IsNullOrEmpty($cloudEvent.Type)) {
+                        # Get Data from HTTP Body
+                        $cloudEvent.Data = $Body
+
+                        $result = $cloudEvent
+                    }
+                }
+            }
+        }
+
+        Write-Output $result
+    }
 }
 #endregion HTTP Protocol Binding Conversion Functions

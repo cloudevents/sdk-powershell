@@ -4,9 +4,9 @@
 # **************************************************************************
 
 Describe "ConvertFrom-HttpMessage Function Tests" {
-   BeforeAll {
-      $expectedSpecVersion = '1.0'
-      $expectedStructuredContentType = 'application/cloudevents+json'
+   BeforeEach {
+      $script:expectedSpecVersion = '1.0'
+      $script:expectedStructuredContentType = 'application/cloudevents+json'
    }
 
    Context "Converts CloudEvent in Binary Content Mode" {
@@ -77,6 +77,7 @@ Describe "ConvertFrom-HttpMessage Function Tests" {
          $expectedType = 'test'
          $expectedSource  = 'urn:test'
          $expectedDataContentType = 'application/xml'
+         $expectedId  = 'test-id-2'
          $expectedData = [Text.Encoding]::UTF8.GetBytes('<much wow="xml"/>')
 
          $headers = @{
@@ -84,6 +85,7 @@ Describe "ConvertFrom-HttpMessage Function Tests" {
             'ce-specversion' = $expectedSpecVersion
             'ce-type' = $expectedType
             'ce-source' = $expectedSource
+            'ce-id' = $expectedId
          }
 
          $body = $expectedData
@@ -95,6 +97,7 @@ Describe "ConvertFrom-HttpMessage Function Tests" {
 
          # Assert
          $actual | Should -Not -Be $null
+         $actual.Id | Should -Be $expectedId
          $actual.Type | Should -Be $expectedType
          $actual.Source | Should -Be $expectedSource
          $actual.DataContentType | Should -Be $expectedDataContentType
@@ -105,6 +108,81 @@ Describe "ConvertFrom-HttpMessage Function Tests" {
 
          $actualData | Should -Be $expectedData
       }
+
+      It 'Returns null when ce-id is not specified' {
+        # Arrange
+        $expectedType = 'test'
+        $expectedSource  = 'urn:test'
+        $expectedDataContentType = 'application/xml'
+        $expectedData = [Text.Encoding]::UTF8.GetBytes('<much wow="xml"/>')
+
+        $headers = @{
+           'Content-Type' = @($expectedDataContentType, 'charset=utf-8')
+           'ce-specversion' = $expectedSpecVersion
+           'ce-type' = $expectedType
+           'ce-source' = $expectedSource
+        }
+
+        $body = $expectedData
+
+        # Act
+        $actual = ConvertFrom-HttpMessage `
+                    -Headers $headers `
+                    -Body $body
+
+        # Assert
+        $actual | Should -Be $null
+     }
+
+     It 'Returns null when ce-source is not specified' {
+        # Arrange
+        $expectedType = 'test'
+        $expectedDataContentType = 'application/xml'
+        $expectedId  = 'test-id-3'
+        $expectedData = [Text.Encoding]::UTF8.GetBytes('<much wow="xml"/>')
+
+        $headers = @{
+           'Content-Type' = @($expectedDataContentType, 'charset=utf-8')
+           'ce-specversion' = $expectedSpecVersion
+           'ce-type' = $expectedType
+           'ce-id' = $expectedId
+        }
+
+        $body = $expectedData
+
+        # Act
+        $actual = ConvertFrom-HttpMessage `
+                    -Headers $headers `
+                    -Body $body
+
+        # Assert
+        $actual | Should -Be $null
+     }
+
+     It 'Returns null when ce-type is not specified' {
+        # Arrange
+        $expectedSource  = 'urn:test'
+        $expectedDataContentType = 'application/xml'
+        $expectedId  = 'test-id-4'
+        $expectedData = [Text.Encoding]::UTF8.GetBytes('<much wow="xml"/>')
+
+        $headers = @{
+           'Content-Type' = @($expectedDataContentType, 'charset=utf-8')
+           'ce-specversion' = $expectedSpecVersion
+           'ce-source' = $expectedSource
+           'ce-id' = $expectedId
+        }
+
+        $body = $expectedData
+
+        # Act
+        $actual = ConvertFrom-HttpMessage `
+                    -Headers $headers `
+                    -Body $body
+
+        # Assert
+        $actual | Should -Be $null
+     }
    }
 
    Context "Converts CloudEvent in Structured Content Mode" {
@@ -245,5 +323,29 @@ Describe "ConvertFrom-HttpMessage Function Tests" {
                      -Body $body } | `
          Should -Throw "*Unsupported CloudEvents encoding*"
       }
+
+      It 'Returns null when no Content-Type header' {
+        # Arrange
+
+        $expectedType = 'test'
+        $expectedSource  = 'urn:test'
+        $expectedDataContentType = 'application/xml'
+        $expectedData = [Text.Encoding]::UTF8.GetBytes('<much wow="xml"/>')
+        $structuredJsonBody = @{
+           'specversion' = $expectedSpecVersion
+           'type' = $expectedType
+           'source' = $expectedSource
+           'datacontenttype' = $expectedDataContentType
+           'data' = $expectedData
+        }
+
+        $body = [Text.Encoding]::UTF8.GetBytes(($structuredJsonBody | ConvertTo-Json))
+
+        # Act & Assert
+        $ce = ConvertFrom-HttpMessage `
+                    -Headers @{} `
+                    -Body $body
+        $ce | Should -Be $null
+     }
    }
 }

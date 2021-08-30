@@ -1,4 +1,25 @@
 
+<a name="v0.3.1"></a>
+## [Release v0.3.1](https://github.com/cloudevents/sdk-powershell/compare/v0.3.0...v0.3.1)
+
+> Release Date: 2021-08-30
+
+### 🐞 Fix
+
+- [7eb0f9b]	Incorrect parsing of Binary Content Mode cloud events
+
+### 🧹 Chore
+
+- [941816a]	Add RELEASE instructions (#40) 
+
+### ⚠️ BREAKING
+
+### 📖 Commits
+
+- [7eb0f9b]	fix: Incorrect parsing of Binary Content Mode cloud events
+- [941816a]	chore: Add RELEASE instructions (#40) 
+- [7876104]	Update README with the new version output
+
 <a name="v0.3.0"></a>
 ## v0.3.0
 

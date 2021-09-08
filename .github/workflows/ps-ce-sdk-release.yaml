@@ -6,7 +6,7 @@
 name: Release
 
 on:
-  create:
+  push:
     tags:
       - v*
   workflow_dispatch:

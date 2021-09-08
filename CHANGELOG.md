@@ -1,4 +1,36 @@
 
+<a name="v0.3.3"></a>
+## [Release v0.3.3](https://github.com/cloudevents/sdk-powershell/compare/v0.3.2...v0.3.3)
+
+> Release Date: 2021-09-08
+
+### 🧹 Chore
+
+- [32f333b]	Bump module version for new release
+- [5e2e221]	Trigger release on tag push (#47) 
+
+### ⚠️ BREAKING
+
+### 📖 Commits
+
+- [32f333b]	chore: Bump module version for new release
+- [5e2e221]	chore: Trigger release on tag push (#47) 
+
+<a name="v0.3.2"></a>
+## [Release v0.3.2](https://github.com/cloudevents/sdk-powershell/compare/v0.3.1...v0.3.2)
+
+> Release Date: 2021-09-08
+
+### 🧹 Chore
+
+- [c8b5958]	Add Project URI in the module manifest
+
+### ⚠️ BREAKING
+
+### 📖 Commits
+
+- [c8b5958]	chore: Add Project URI in the module manifest
+
 <a name="v0.3.1"></a>
 ## [Release v0.3.1](https://github.com/cloudevents/sdk-powershell/compare/v0.3.0...v0.3.1)
 

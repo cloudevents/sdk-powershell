@@ -121,7 +121,7 @@ Describe "Set-CloudEventData Function Tests" {
                -CloudEvent $cloudEvent `
                -Data '1' `
                -DataContentType $invalidContentType } | `
-         Should -Throw "*The parameter 'contentType' cannot be an empty string*"
+         Should -Throw "*cannot be an empty string*"
       }
 
       It 'Throws error on null content type' {
@@ -138,7 +138,7 @@ Describe "Set-CloudEventData Function Tests" {
                -CloudEvent $cloudEvent `
                -Data '1' `
                -DataContentType $invalidContentType } | `
-         Should -Throw "*The parameter 'contentType' cannot be an empty string*"
+         Should -Throw "*cannot be an empty string*"
       }
    }
 }

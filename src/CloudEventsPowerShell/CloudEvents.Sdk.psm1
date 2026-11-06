@@ -122,7 +122,7 @@ function Set-CloudEventData {
 
     PROCESS {
 
-        # https://github.com/cloudevents/spec/blob/master/spec.md#datacontenttype
+        # https://github.com/cloudevents/spec/blob/main/cloudevents/spec.md#datacontenttype
         $contentType = New-Object `
             -TypeName 'System.Net.Mime.ContentType' `
             -ArgumentList ($DataContentType)
@@ -185,7 +185,7 @@ function Set-CloudEventJsonData {
     PROCESS {
 
         # DataContentType is set to 'application/json'
-        # https://github.com/cloudevents/spec/blob/master/spec.md#datacontenttype
+        # https://github.com/cloudevents/spec/blob/main/cloudevents/spec.md#datacontenttype
         $dataContentType = New-Object `
             -TypeName 'System.Net.Mime.ContentType' `
             -ArgumentList ([System.Net.Mime.MediaTypeNames+Application]::Json)
@@ -343,7 +343,7 @@ function Read-CloudEventJsonData {
     PROCESS {
 
         # DataContentType is expected to be 'application/json'
-        # https://github.com/cloudevents/spec/blob/master/spec.md#datacontenttype
+        # https://github.com/cloudevents/spec/blob/main/cloudevents/spec.md#datacontenttype
         $dataContentType = New-Object `
             -TypeName 'System.Net.Mime.ContentType' `
             -ArgumentList ([System.Net.Mime.MediaTypeNames+Application]::Json)

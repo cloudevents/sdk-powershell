@@ -29,6 +29,9 @@ function New-CloudEvent {
    .PARAMETER Time
    Specifies the 'time' attribute of the cloud event.
 
+   .PARAMETER DataSchema
+   Specifies the absolute URI of the schema that the cloud event 'data' adheres to.
+
    .EXAMPLE
    New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io' -Id '6e8bc430-9c3a-11d9-9669-0800200c9a66' -Time (Get-Date)
 
@@ -55,7 +58,13 @@ function New-CloudEvent {
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [DateTime]
-        $Time
+        $Time,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ $_.IsAbsoluteUri })]
+        [System.Uri]
+        $DataSchema
     )
 
     PROCESS {
@@ -67,6 +76,10 @@ function New-CloudEvent {
             $Id,
             $Time,
             @())
+
+        if ($PSBoundParameters.ContainsKey('DataSchema')) {
+            $cloudEvent.DataSchema = $DataSchema
+        }
 
         Write-Output $cloudEvent
     }
@@ -89,6 +102,10 @@ function Set-CloudEventData {
 
    .PARAMETER DataContentType
    Specifies the 'datacontenttype' attribute of the cloud event.
+
+   .PARAMETER DataSchema
+   Specifies the absolute URI of the schema that the cloud event 'data' adheres to.
+   If omitted, the existing 'dataschema' attribute is preserved.
 
 
    .EXAMPLE
@@ -118,7 +135,14 @@ function Set-CloudEventData {
         [Parameter(Mandatory = $false,
             ValueFromPipeline = $false)]
         [string]
-        $DataContentType)
+        $DataContentType,
+
+        [Parameter(Mandatory = $false,
+            ValueFromPipeline = $false)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ $_.IsAbsoluteUri })]
+        [System.Uri]
+        $DataSchema)
 
     PROCESS {
 
@@ -129,6 +153,10 @@ function Set-CloudEventData {
 
         $cloudEvent.Data = $Data
         $cloudEvent.DataContentType = $dataContentType
+
+        if ($PSBoundParameters.ContainsKey('DataSchema')) {
+            $cloudEvent.DataSchema = $DataSchema
+        }
 
         Write-Output $CloudEvent
     }
@@ -155,6 +183,10 @@ function Set-CloudEventJsonData {
    This parameter is passed on the `-Depth` parameter of the `ConvertTo-Json` cmdlet.
    The default value is 3
 
+   .PARAMETER DataSchema
+   Specifies the absolute URI of the schema that the cloud event 'data' adheres to.
+   If omitted, the existing 'dataschema' attribute is preserved.
+
 
    .EXAMPLE
    $cloudEvent = New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io' -Id '6e8bc430-9c3a-11d9-9669-0800200c9a66' -Time (Get-Date)
@@ -180,7 +212,14 @@ function Set-CloudEventJsonData {
         [Parameter(Mandatory = $false,
             ValueFromPipeline = $false)]
         [int]
-        $Depth = 3)
+        $Depth = 3,
+
+        [Parameter(Mandatory = $false,
+            ValueFromPipeline = $false)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ $_.IsAbsoluteUri })]
+        [System.Uri]
+        $DataSchema)
 
     PROCESS {
 
@@ -192,6 +231,10 @@ function Set-CloudEventJsonData {
 
         $cloudEvent.DataContentType = $dataContentType
         $cloudEvent.Data = ConvertTo-Json -InputObject $Data -Depth $Depth
+
+        if ($PSBoundParameters.ContainsKey('DataSchema')) {
+            $cloudEvent.DataSchema = $DataSchema
+        }
 
         Write-Output $CloudEvent
     }

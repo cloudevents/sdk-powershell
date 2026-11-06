@@ -26,6 +26,7 @@ Describe "Set-CloudEventData Function Tests" {
          $actual | Should -Not -Be $null
          $actual.DataContentType.ToString() | Should -Be $expectedDataContentType
          $actual.Data | Should -Be $expectedData
+         $actual.DataSchema | Should -BeNullOrEmpty
       }
 
       It 'Sets xml text data' {
@@ -52,6 +53,41 @@ Describe "Set-CloudEventData Function Tests" {
       }
    }
 
+
+   Context "Sets DataSchema" {
+      It 'Sets or preserves DataSchema' -TestCases @(
+         @{ Parameters = @{ DataSchema = 'https://example.com/schema.json' }; ExpectedDataSchema = 'https://example.com/schema.json' }
+         @{ Parameters = @{ DataSchema = [System.Uri]'urn:test:schema' }; ExpectedDataSchema = 'urn:test:schema' }
+         @{ Parameters = @{}; ExpectedDataSchema = 'https://example.com/original.json' }
+      ) {
+         param($Parameters, $ExpectedDataSchema)
+
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'test-id'
+         $cloudEvent.DataSchema = [System.Uri]'https://example.com/original.json'
+
+         $actual = $cloudEvent | Set-CloudEventData -Data '{"a":"b"}' -DataContentType 'application/json' @Parameters
+
+         $actual | Should -Be $cloudEvent
+         $actual.DataSchema | Should -BeOfType ([System.Uri])
+         $actual.DataSchema | Should -Be $ExpectedDataSchema
+         $actual.Data | Should -Be '{"a":"b"}'
+         $actual.DataContentType.ToString() | Should -Be 'application/json'
+      }
+
+      It 'Rejects invalid DataSchema values' -TestCases @(
+         @{ DataSchema = $null }
+         @{ DataSchema = '' }
+         @{ DataSchema = 'schema.json' }
+         @{ DataSchema = 'http://[invalid' }
+      ) {
+         param($DataSchema)
+
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'test-id'
+
+         { $cloudEvent | Set-CloudEventData -Data '{}' -DataContentType 'application/json' -DataSchema $DataSchema } |
+            Should -Throw
+      }
+   }
 
    Context "Errors on invalid data content type" {
       It 'Throws error on invalid MIME content type' {
@@ -85,7 +121,7 @@ Describe "Set-CloudEventData Function Tests" {
                -CloudEvent $cloudEvent `
                -Data '1' `
                -DataContentType $invalidContentType } | `
-         Should -Throw "*The parameter 'contentType' cannot be an empty string*"
+         Should -Throw "*cannot be an empty string*"
       }
 
       It 'Throws error on null content type' {
@@ -102,7 +138,7 @@ Describe "Set-CloudEventData Function Tests" {
                -CloudEvent $cloudEvent `
                -Data '1' `
                -DataContentType $invalidContentType } | `
-         Should -Throw "*The parameter 'contentType' cannot be an empty string*"
+         Should -Throw "*cannot be an empty string*"
       }
    }
 }

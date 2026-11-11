@@ -25,8 +25,18 @@ Describe "Set-CloudEventData Function Tests" {
          # Assert
          $actual | Should -Not -Be $null
          $actual.DataContentType.ToString() | Should -Be $expectedDataContentType
+         $actual.DataContentType | Should -BeOfType ([System.Net.Mime.ContentType])
          $actual.Data | Should -Be $expectedData
          $actual.DataSchema | Should -BeNullOrEmpty
+      }
+
+      It 'Sets data when DataContentType is omitted' {
+         $cloudEvent = New-CloudEvent -Id 'test-id' -Type test -Source 'urn:test'
+
+         $actual = $cloudEvent | Set-CloudEventData -Data 'test'
+
+         $actual.Data | Should -Be 'test'
+         $actual.DataContentType | Should -BeNullOrEmpty
       }
 
       It 'Sets xml text data' {

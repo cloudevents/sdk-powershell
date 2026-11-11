@@ -70,6 +70,17 @@ Time            : 4/26/2021 9:00:45 AM
 Type            : com.example.object.deleted.v2
 ```
 
+Use the optional `-DataSchema` absolute URI parameter on `New-CloudEvent`,
+`Set-CloudEventData`, or `Set-CloudEventJsonData` to specify the schema for the
+event data:
+
+```powershell
+$cloudEvent | Set-CloudEventJsonData -Data @{ 'Foo' = 'Hello'; 'Bar' = 'World' } -DataSchema 'https://example.com/schema.json'
+```
+
+Omitting `-DataSchema` when setting data preserves any schema already set on the
+event.
+
 ### Set **XML Data** to a CloudEvent object
 ```powershell
 $cloudEvent | Set-CloudEventXmlData -Data @{

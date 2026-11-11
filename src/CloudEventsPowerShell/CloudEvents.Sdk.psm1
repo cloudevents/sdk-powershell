@@ -146,13 +146,16 @@ function Set-CloudEventData {
 
     PROCESS {
 
-        # https://github.com/cloudevents/spec/blob/main/cloudevents/spec.md#datacontenttype
-        $contentType = New-Object `
-            -TypeName 'System.Net.Mime.ContentType' `
-            -ArgumentList ($DataContentType)
-
         $cloudEvent.Data = $Data
-        $cloudEvent.DataContentType = $dataContentType
+
+        if ($PSBoundParameters.ContainsKey('DataContentType')) {
+            # https://github.com/cloudevents/spec/blob/main/cloudevents/spec.md#datacontenttype
+            $contentType = New-Object `
+                -TypeName 'System.Net.Mime.ContentType' `
+                -ArgumentList ($DataContentType)
+
+            $cloudEvent.DataContentType = $contentType
+        }
 
         if ($PSBoundParameters.ContainsKey('DataSchema')) {
             $cloudEvent.DataSchema = $DataSchema

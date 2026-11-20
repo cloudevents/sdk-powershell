@@ -21,6 +21,39 @@ Describe "Set-CloudEventXmlData Function Tests" {
          $actual.DataSchema | Should -Be 'https://example.com/schema.xml'
       }
 
+      It 'Preserves the positional AttributesKeysInElementAttributes argument' {
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'positional-id'
+
+         $actual = Set-CloudEventXmlData $cloudEvent @{ root = 'value' } $false
+
+         $actual.Data | Should -Be '<root>value</root>'
+         $actual.DataContentType.ToString() | Should -Be 'application/xml'
+      }
+
+      It 'Does not modify the event when DataSchema validation fails' -TestCases @(
+         @{ DataSchema = $null }
+         @{ DataSchema = 'schema.xml' }
+      ) {
+         param($DataSchema)
+
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'test-id'
+         $cloudEvent.Data = 'original'
+         $cloudEvent.DataContentType = [System.Net.Mime.ContentType]'application/original'
+         $cloudEvent.DataSchema = [System.Uri]'https://example.com/original.xml'
+
+         {
+            $cloudEvent | Set-CloudEventXmlData `
+               -Data @{ root = 'updated' } `
+               -AttributesKeysInElementAttributes $false `
+               -DataSchema $DataSchema `
+               -ErrorAction Stop
+         } | Should -Throw
+
+         $cloudEvent.Data | Should -Be 'original'
+         $cloudEvent.DataContentType.ToString() | Should -Be 'application/original'
+         $cloudEvent.DataSchema | Should -Be 'https://example.com/original.xml'
+      }
+
       It 'Sets xml data with depth 1' {
          # Arrange
          $cloudEvent = New-CloudEvent `

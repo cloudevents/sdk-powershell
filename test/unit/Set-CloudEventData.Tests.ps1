@@ -56,6 +56,28 @@ Describe "Set-CloudEventData Function Tests" {
          $actual.DataSchema | Should -Be 'https://example.com/schema.json'
       }
 
+      It 'Does not reuse a prior wrapper DataContentType for the next pipeline record' {
+         $firstEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'first-id'
+         $secondEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'second-id'
+         $secondEvent.DataContentType = [System.Net.Mime.ContentType]'application/json'
+         $records = @(
+            [pscustomobject]@{
+               CloudEvent = $firstEvent
+               Data = 'first'
+               DataContentType = 'text/plain'
+            }
+            [pscustomobject]@{
+               CloudEvent = $secondEvent
+               Data = 'second'
+            }
+         )
+
+         $actual = @($records | Set-CloudEventData)
+
+         $actual[0].DataContentType.ToString() | Should -Be 'text/plain'
+         $actual[1].DataContentType.ToString() | Should -Be 'application/json'
+      }
+
       It 'Sets xml text data' {
          # Arrange
          $cloudEvent = New-CloudEvent `
@@ -113,6 +135,30 @@ Describe "Set-CloudEventData Function Tests" {
 
          { $cloudEvent | Set-CloudEventData -Data '{}' -DataContentType 'application/json' -DataSchema $DataSchema } |
             Should -Throw
+      }
+
+      It 'Does not modify the event when DataSchema validation fails' -TestCases @(
+         @{ DataSchema = $null }
+         @{ DataSchema = 'schema.json' }
+      ) {
+         param($DataSchema)
+
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'test-id'
+         $cloudEvent.Data = 'original'
+         $cloudEvent.DataContentType = [System.Net.Mime.ContentType]'application/original'
+         $cloudEvent.DataSchema = [System.Uri]'https://example.com/original.json'
+
+         {
+            $cloudEvent | Set-CloudEventData `
+               -Data 'updated' `
+               -DataContentType 'text/plain' `
+               -DataSchema $DataSchema `
+               -ErrorAction Stop
+         } | Should -Throw
+
+         $cloudEvent.Data | Should -Be 'original'
+         $cloudEvent.DataContentType.ToString() | Should -Be 'application/original'
+         $cloudEvent.DataSchema | Should -Be 'https://example.com/original.json'
       }
    }
 

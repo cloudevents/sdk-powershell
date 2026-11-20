@@ -6,6 +6,21 @@
 $xmlDataSerilizationLibPath = Join-Path (Join-Path $PSScriptRoot 'dataserialization') 'xml.ps1'
 . $xmlDataSerilizationLibPath
 
+function Assert-CloudEventDataSchema {
+    param(
+        [System.Uri]
+        $DataSchema
+    )
+
+    if ($null -eq $DataSchema) {
+        throw 'DataSchema cannot be null or empty.'
+    }
+
+    if (-not $DataSchema.IsAbsoluteUri) {
+        throw 'DataSchema must be an absolute URI.'
+    }
+}
+
 function New-CloudEvent {
     <#
    .SYNOPSIS
@@ -80,9 +95,16 @@ function New-CloudEvent {
     BEGIN {
         $explicitId = $PSBoundParameters.ContainsKey('Id')
         $explicitTime = $PSBoundParameters.ContainsKey('Time')
+        $explicitDataSchema = $PSBoundParameters.ContainsKey('DataSchema')
+
+        if ($explicitDataSchema -and $null -eq $DataSchema) {
+            throw 'DataSchema cannot be null or empty.'
+        }
     }
 
     PROCESS {
+        $eventDataSchema = $null
+
         if (-not $explicitId -and
             (-not $MyInvocation.ExpectingInput -or $null -eq $_.PSObject.Properties['Id'])) {
             $Id = [Guid]::NewGuid().ToString()
@@ -102,18 +124,24 @@ function New-CloudEvent {
             $Time,
             @())
 
-        if ($PSBoundParameters.ContainsKey('DataSchema')) {
-            if ($null -eq $DataSchema) {
-                if (-not $MyInvocation.ExpectingInput) {
-                    throw 'DataSchema cannot be null or empty.'
-                }
+        $recordDataSchema = $null
+        if ($MyInvocation.ExpectingInput) {
+            $recordDataSchema = $_.PSObject.Properties['DataSchema']
+        }
+
+        if ($explicitDataSchema) {
+            $eventDataSchema = $DataSchema
+        }
+        elseif ($null -ne $recordDataSchema) {
+            $eventDataSchema = $recordDataSchema.Value
+            if ($null -ne $eventDataSchema) {
+                $eventDataSchema = [System.Uri]$eventDataSchema
             }
-            elseif (-not $DataSchema.IsAbsoluteUri) {
-                throw 'DataSchema must be an absolute URI.'
-            }
-            else {
-                $cloudEvent.DataSchema = $DataSchema
-            }
+        }
+
+        if ($null -ne $eventDataSchema) {
+            Assert-CloudEventDataSchema $eventDataSchema
+            $cloudEvent.DataSchema = $eventDataSchema
         }
 
         Write-Output $cloudEvent
@@ -196,39 +224,62 @@ function Set-CloudEventData {
     }
 
     PROCESS {
+        $contentTypeValue = $null
+        $schemaValue = $null
+
         if ($MyInvocation.ExpectingInput -and
             $_ -is [CloudNative.CloudEvents.CloudEvent] -and
             -not $explicitData) {
             throw 'The Data parameter must be specified when a CloudEvent is piped directly.'
         }
 
-        $cloudEvent.Data = $Data
+        $recordDataContentType = $null
+        $recordDataSchema = $null
+        if ($MyInvocation.ExpectingInput -and $_ -isnot [CloudNative.CloudEvents.CloudEvent]) {
+            $recordDataContentType = $_.PSObject.Properties['DataContentType']
+            $recordDataSchema = $_.PSObject.Properties['DataSchema']
+        }
 
-        $setDataContentType = $explicitDataContentType -or
-            ($MyInvocation.ExpectingInput -and $_ -isnot [CloudNative.CloudEvents.CloudEvent])
-        if ($setDataContentType -and $PSBoundParameters.ContainsKey('DataContentType')) {
+        $setDataContentType = $explicitDataContentType -or $null -ne $recordDataContentType
+        if ($explicitDataContentType) {
+            $contentTypeValue = $DataContentType
+        }
+        elseif ($null -ne $recordDataContentType) {
+            $contentTypeValue = $recordDataContentType.Value
+        }
+
+        $contentType = $null
+        if ($setDataContentType) {
             # https://github.com/cloudevents/spec/blob/main/cloudevents/spec.md#datacontenttype
             $contentType = New-Object `
                 -TypeName 'System.Net.Mime.ContentType' `
-                -ArgumentList ($DataContentType)
-
-            $cloudEvent.DataContentType = $contentType
+                -ArgumentList ($contentTypeValue)
         }
 
-        $setDataSchema = $explicitDataSchema -or
-            ($MyInvocation.ExpectingInput -and $_ -isnot [CloudNative.CloudEvents.CloudEvent])
-        if ($setDataSchema -and $PSBoundParameters.ContainsKey('DataSchema')) {
-            if ($null -eq $DataSchema) {
-                if ($explicitDataSchema) {
-                    throw 'DataSchema cannot be null or empty.'
-                }
+        $setDataSchema = $explicitDataSchema -or $null -ne $recordDataSchema
+        if ($explicitDataSchema) {
+            $schemaValue = $DataSchema
+        }
+        elseif ($null -ne $recordDataSchema) {
+            $schemaValue = $recordDataSchema.Value
+            if ($null -ne $schemaValue) {
+                $schemaValue = [System.Uri]$schemaValue
             }
-            elseif (-not $DataSchema.IsAbsoluteUri) {
-                throw 'DataSchema must be an absolute URI.'
-            }
-            else {
-                $cloudEvent.DataSchema = $DataSchema
-            }
+        }
+
+        if ($setDataSchema -and $null -ne $schemaValue) {
+            Assert-CloudEventDataSchema $schemaValue
+        }
+        elseif ($explicitDataSchema) {
+            Assert-CloudEventDataSchema $schemaValue
+        }
+
+        $cloudEvent.Data = $Data
+        if ($setDataContentType) {
+            $cloudEvent.DataContentType = $contentType
+        }
+        if ($setDataSchema -and $null -ne $schemaValue) {
+            $cloudEvent.DataSchema = $schemaValue
         }
 
         Write-Output $CloudEvent
@@ -305,10 +356,35 @@ function Set-CloudEventJsonData {
     }
 
     PROCESS {
+        $schemaValue = $null
+
         if ($MyInvocation.ExpectingInput -and
             $_ -is [CloudNative.CloudEvents.CloudEvent] -and
             -not $explicitData) {
             throw 'The Data parameter must be specified when a CloudEvent is piped directly.'
+        }
+
+        $recordDataSchema = $null
+        if ($MyInvocation.ExpectingInput -and $_ -isnot [CloudNative.CloudEvents.CloudEvent]) {
+            $recordDataSchema = $_.PSObject.Properties['DataSchema']
+        }
+
+        $setDataSchema = $explicitDataSchema -or $null -ne $recordDataSchema
+        if ($explicitDataSchema) {
+            $schemaValue = $DataSchema
+        }
+        elseif ($null -ne $recordDataSchema) {
+            $schemaValue = $recordDataSchema.Value
+            if ($null -ne $schemaValue) {
+                $schemaValue = [System.Uri]$schemaValue
+            }
+        }
+
+        if ($setDataSchema -and $null -ne $schemaValue) {
+            Assert-CloudEventDataSchema $schemaValue
+        }
+        elseif ($explicitDataSchema) {
+            Assert-CloudEventDataSchema $schemaValue
         }
 
         # DataContentType is set to 'application/json'
@@ -317,23 +393,12 @@ function Set-CloudEventJsonData {
             -TypeName 'System.Net.Mime.ContentType' `
             -ArgumentList ([System.Net.Mime.MediaTypeNames+Application]::Json)
 
-        $cloudEvent.DataContentType = $dataContentType
-        $cloudEvent.Data = ConvertTo-Json -InputObject $Data -Depth $Depth
+        $serializedData = ConvertTo-Json -InputObject $Data -Depth $Depth
 
-        $setDataSchema = $explicitDataSchema -or
-            ($MyInvocation.ExpectingInput -and $_ -isnot [CloudNative.CloudEvents.CloudEvent])
-        if ($setDataSchema -and $PSBoundParameters.ContainsKey('DataSchema')) {
-            if ($null -eq $DataSchema) {
-                if ($explicitDataSchema) {
-                    throw 'DataSchema cannot be null or empty.'
-                }
-            }
-            elseif (-not $DataSchema.IsAbsoluteUri) {
-                throw 'DataSchema must be an absolute URI.'
-            }
-            else {
-                $cloudEvent.DataSchema = $DataSchema
-            }
+        $cloudEvent.DataContentType = $dataContentType
+        $cloudEvent.Data = $serializedData
+        if ($setDataSchema -and $null -ne $schemaValue) {
+            $cloudEvent.DataSchema = $schemaValue
         }
 
         Write-Output $CloudEvent
@@ -401,13 +466,13 @@ function Set-CloudEventXmlData {
         [Hashtable]
         $Data,
 
-        [Parameter(ValueFromPipelineByPropertyName = $true)]
-        [System.Uri]
-        $DataSchema,
-
         [Parameter(Mandatory = $true)]
         [bool]
-        $AttributesKeysInElementAttributes)
+        $AttributesKeysInElementAttributes,
+
+        [Parameter(ValueFromPipelineByPropertyName = $true)]
+        [System.Uri]
+        $DataSchema)
 
     BEGIN {
         $explicitData = $PSBoundParameters.ContainsKey('Data')
@@ -415,10 +480,35 @@ function Set-CloudEventXmlData {
     }
 
     PROCESS {
+        $schemaValue = $null
+
         if ($MyInvocation.ExpectingInput -and
             $_ -is [CloudNative.CloudEvents.CloudEvent] -and
             -not $explicitData) {
             throw 'The Data parameter must be specified when a CloudEvent is piped directly.'
+        }
+
+        $recordDataSchema = $null
+        if ($MyInvocation.ExpectingInput -and $_ -isnot [CloudNative.CloudEvents.CloudEvent]) {
+            $recordDataSchema = $_.PSObject.Properties['DataSchema']
+        }
+
+        $setDataSchema = $explicitDataSchema -or $null -ne $recordDataSchema
+        if ($explicitDataSchema) {
+            $schemaValue = $DataSchema
+        }
+        elseif ($null -ne $recordDataSchema) {
+            $schemaValue = $recordDataSchema.Value
+            if ($null -ne $schemaValue) {
+                $schemaValue = [System.Uri]$schemaValue
+            }
+        }
+
+        if ($setDataSchema -and $null -ne $schemaValue) {
+            Assert-CloudEventDataSchema $schemaValue
+        }
+        elseif ($explicitDataSchema) {
+            Assert-CloudEventDataSchema $schemaValue
         }
 
         # DataContentType is set to 'application/xml'
@@ -426,23 +516,12 @@ function Set-CloudEventXmlData {
             -TypeName 'System.Net.Mime.ContentType' `
             -ArgumentList ([System.Net.Mime.MediaTypeNames+Application]::Xml)
 
-        $cloudEvent.DataContentType = $dataContentType
-        $cloudEvent.Data = ConvertTo-CEDataXml -InputObject $Data -AttributesKeysInElementAttributes $AttributesKeysInElementAttributes
+        $serializedData = ConvertTo-CEDataXml -InputObject $Data -AttributesKeysInElementAttributes $AttributesKeysInElementAttributes
 
-        $setDataSchema = $explicitDataSchema -or
-            ($MyInvocation.ExpectingInput -and $_ -isnot [CloudNative.CloudEvents.CloudEvent])
-        if ($setDataSchema -and $PSBoundParameters.ContainsKey('DataSchema')) {
-            if ($null -eq $DataSchema) {
-                if ($explicitDataSchema) {
-                    throw 'DataSchema cannot be null or empty.'
-                }
-            }
-            elseif (-not $DataSchema.IsAbsoluteUri) {
-                throw 'DataSchema must be an absolute URI.'
-            }
-            else {
-                $cloudEvent.DataSchema = $DataSchema
-            }
+        $cloudEvent.DataContentType = $dataContentType
+        $cloudEvent.Data = $serializedData
+        if ($setDataSchema -and $null -ne $schemaValue) {
+            $cloudEvent.DataSchema = $schemaValue
         }
 
         Write-Output $CloudEvent
@@ -908,6 +987,13 @@ function ConvertFrom-HttpMessage {
         $Body)
 
     PROCESS {
+        $normalizedHeaders = [System.Collections.Generic.Dictionary[string, object]]::new(
+            [System.StringComparer]::OrdinalIgnoreCase)
+        foreach ($header in $Headers.GetEnumerator()) {
+            $normalizedHeaders[[string]$header.Key] = $header.Value
+        }
+        $Headers = $normalizedHeaders
+
         $HttpHeaderPrefix = "ce-";
         $SpecVersionHttpHeader = $HttpHeaderPrefix + "specversion";
 

@@ -43,6 +43,25 @@ Describe "ConvertFrom-HttpMessage Function Tests" {
          $actual.Source | Should -Be 'urn:test'
          [Text.Encoding]::UTF8.GetString($actual.Data) | Should -Be 'response body'
       }
+
+      It 'Looks up lowercase headers in a case-sensitive dictionary' {
+         $headers = [System.Collections.Generic.Dictionary[string, string[]]]::new()
+         $headers.Add('content-type', [string[]]@('text/plain'))
+         $headers.Add('ce-specversion', [string[]]@('1.0'))
+         $headers.Add('ce-type', [string[]]@('test'))
+         $headers.Add('ce-source', [string[]]@('urn:test'))
+         $headers.Add('ce-id', [string[]]@('lowercase-header-id'))
+
+         $actual = ConvertFrom-HttpMessage `
+            -Headers $headers `
+            -Body ([Text.Encoding]::UTF8.GetBytes('payload'))
+
+         $actual.Id | Should -Be 'lowercase-header-id'
+         $actual.Type | Should -Be 'test'
+         $actual.Source | Should -Be 'urn:test'
+         $actual.DataContentType.ToString() | Should -Be 'text/plain'
+         [Text.Encoding]::UTF8.GetString($actual.Data) | Should -Be 'payload'
+      }
    }
 
    Context "Converts CloudEvent in Binary Content Mode" {

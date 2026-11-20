@@ -37,6 +37,29 @@ Describe "Set-CloudEventJsonData Function Tests" {
          { $cloudEvent | Set-CloudEventJsonData -Data @{} -DataSchema $DataSchema } |
             Should -Throw
       }
+
+      It 'Does not modify the event when DataSchema validation fails' -TestCases @(
+         @{ DataSchema = $null }
+         @{ DataSchema = 'schema.json' }
+      ) {
+         param($DataSchema)
+
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'test-id'
+         $cloudEvent.Data = 'original'
+         $cloudEvent.DataContentType = [System.Net.Mime.ContentType]'application/original'
+         $cloudEvent.DataSchema = [System.Uri]'https://example.com/original.json'
+
+         {
+            $cloudEvent | Set-CloudEventJsonData `
+               -Data @{ updated = $true } `
+               -DataSchema $DataSchema `
+               -ErrorAction Stop
+         } | Should -Throw
+
+         $cloudEvent.Data | Should -Be 'original'
+         $cloudEvent.DataContentType.ToString() | Should -Be 'application/original'
+         $cloudEvent.DataSchema | Should -Be 'https://example.com/original.json'
+      }
    }
 
    Context "Sets Json Data" {

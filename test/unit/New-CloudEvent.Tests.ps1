@@ -75,6 +75,33 @@ Describe "New-CloudEvent Function Tests" {
          $actual[1].Time | Should -BeLessOrEqual $after
       }
 
+      It 'Generates missing defaults when later pipeline records omit Id and Time' {
+         $providedTime = [DateTime]'2025-02-03T04:05:06'
+         $records = @(
+            [pscustomobject]@{
+               Type = 'test.one'
+               Source = 'urn:test:one'
+               Id = 'provided-id'
+               Time = $providedTime
+            }
+            [pscustomobject]@{
+               Type = 'test.two'
+               Source = 'urn:test:two'
+            }
+         )
+         $before = Get-Date
+
+         $actual = @($records | New-CloudEvent)
+         $after = Get-Date
+
+         $actual[0].Id | Should -Be 'provided-id'
+         $actual[0].Time | Should -Be $providedTime
+         [Guid]::Parse($actual[1].Id) | Should -Not -BeNullOrEmpty
+         $actual[1].Id | Should -Not -Be 'provided-id'
+         $actual[1].Time | Should -BeGreaterOrEqual $before
+         $actual[1].Time | Should -BeLessOrEqual $after
+      }
+
       It 'Binds explicit Id, Time, and DataSchema pipeline properties' {
          $expectedTime = [DateTime]'2025-02-03T04:05:06'
          $record = [pscustomobject]@{
@@ -90,6 +117,28 @@ Describe "New-CloudEvent Function Tests" {
          $actual.Id | Should -Be 'property-id'
          $actual.Time | Should -Be $expectedTime
          $actual.DataSchema | Should -Be 'https://example.com/schema.json'
+      }
+
+      It 'Allows null DataSchema properties on pipeline records' {
+         $record = [pscustomobject]@{
+            Type = 'test'
+            Source = 'urn:test'
+            DataSchema = $null
+         }
+
+         $actual = $record | New-CloudEvent
+
+         $actual.DataSchema | Should -BeNullOrEmpty
+      }
+
+      It 'Rejects an explicitly null DataSchema before processing pipeline records' {
+         $record = [pscustomobject]@{
+            Type = 'test'
+            Source = 'urn:test'
+         }
+
+         { @($record) | New-CloudEvent -DataSchema $null -ErrorAction Stop } |
+            Should -Throw '*DataSchema cannot be null or empty*'
       }
 
       It 'Rejects invalid DataSchema values' -TestCases @(

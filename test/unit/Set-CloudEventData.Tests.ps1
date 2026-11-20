@@ -39,6 +39,23 @@ Describe "Set-CloudEventData Function Tests" {
          $actual.DataContentType | Should -BeNullOrEmpty
       }
 
+      It 'Binds CloudEvent, Data, DataContentType, and DataSchema from pipeline properties' {
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'property-bound-id'
+         $inputObject = [pscustomobject]@{
+            CloudEvent = $cloudEvent
+            Data = 'property-bound data'
+            DataContentType = 'text/plain'
+            DataSchema = 'https://example.com/schema.json'
+         }
+
+         $actual = $inputObject | Set-CloudEventData
+
+         $actual | Should -Be $cloudEvent
+         $actual.Data | Should -Be 'property-bound data'
+         $actual.DataContentType.ToString() | Should -Be 'text/plain'
+         $actual.DataSchema | Should -Be 'https://example.com/schema.json'
+      }
+
       It 'Sets xml text data' {
          # Arrange
          $cloudEvent = New-CloudEvent `

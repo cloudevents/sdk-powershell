@@ -25,5 +25,15 @@ Describe "Read-CloudEventData Function Tests" {
          $actual | Should -Not -Be $null
          $actual | Should -Be $expectedData
       }
+
+      It 'Reads CloudEvent data from an object property' {
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'wrapped-id' |
+            Set-CloudEventData -Data 'wrapped data'
+         $wrapper = [pscustomobject]@{ CloudEvent = $cloudEvent }
+
+         $actual = $wrapper | Read-CloudEventData
+
+         $actual | Should -Be 'wrapped data'
+      }
    }
 }

@@ -1,4 +1,20 @@
 
+## Unreleased
+
+### ✨ Features
+
+- Enable pipeline-by-property-name binding across CloudEvent creation, data, and HTTP conversion commands.
+- Add `CloudEvents.HttpMessage` output typing and improve `Invoke-WebRequest` response pipeline support.
+- Default omitted event IDs and timestamps; declare command input/output types and CloudEvent aliases.
+
+### 🐞 Fixes
+
+- Preserve by-value CloudEvent binding in Set commands without treating an event's own `Data` as replacement data.
+
+### 📚 Documentation
+
+- Add pipeline recipes and correct command help references.
+
 <a name="v0.3.3"></a>
 ## [Release v0.3.3](https://github.com/cloudevents/sdk-powershell/compare/v0.3.2...v0.3.3)
 

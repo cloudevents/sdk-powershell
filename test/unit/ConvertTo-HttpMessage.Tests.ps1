@@ -4,6 +4,24 @@
 # **************************************************************************
 
 Describe "ConvertTo-HttpMessage Function Tests" {
+   It 'Declares common aliases on all CloudEvent input parameters' {
+      $commandNames = @(
+         'Set-CloudEventData',
+         'Set-CloudEventJsonData',
+         'Set-CloudEventXmlData',
+         'Read-CloudEventData',
+         'Read-CloudEventJsonData',
+         'Read-CloudEventXmlData',
+         'ConvertTo-HttpMessage'
+      )
+
+      foreach ($commandName in $commandNames) {
+         $aliases = (Get-Command $commandName).Parameters['CloudEvent'].Aliases
+         $aliases | Should -Contain 'InputObject'
+         $aliases | Should -Contain 'Event'
+      }
+   }
+
    BeforeAll {
       $expectedSpecVersion = '1.0'
       $expectedStructuredContentType = 'application/cloudevents+json'

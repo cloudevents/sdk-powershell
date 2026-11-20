@@ -9,6 +9,42 @@ Describe "ConvertFrom-HttpMessage Function Tests" {
       $script:expectedStructuredContentType = 'application/cloudevents+json'
    }
 
+   Context "Accepts pipeline HTTP message objects" {
+      It 'Round-trips ConvertTo-HttpMessage output through the pipeline' {
+         $cloudEvent = New-CloudEvent -Type 'test' -Source 'urn:test' -Id 'round-trip-id' |
+            Set-CloudEventData -Data 'payload' -DataContentType 'text/plain'
+         $httpMessage = $cloudEvent | ConvertTo-HttpMessage -ContentMode Binary
+
+         $actual = $httpMessage | ConvertFrom-HttpMessage
+
+         $httpMessage.PSTypeNames | Should -Contain 'CloudEvents.HttpMessage'
+         $actual.Id | Should -Be 'round-trip-id'
+         $actual.Type | Should -Be 'test'
+         $actual.Source | Should -Be 'urn:test'
+         [Text.Encoding]::UTF8.GetString($actual.Data) | Should -Be 'payload'
+      }
+
+      It 'Binds Invoke-WebRequest-shaped Headers and Content properties' {
+         $headers = [System.Collections.Generic.Dictionary[string, string[]]]::new()
+         $headers.Add('Content-Type', [string[]]@('text/plain'))
+         $headers.Add('ce-specversion', [string[]]@('1.0'))
+         $headers.Add('ce-type', [string[]]@('test'))
+         $headers.Add('ce-source', [string[]]@('urn:test'))
+         $headers.Add('ce-id', [string[]]@('iwr-shaped-id'))
+         $response = [pscustomobject]@{
+            Headers = $headers
+            Content = [Text.Encoding]::UTF8.GetBytes('response body')
+         }
+
+         $actual = $response | ConvertFrom-HttpMessage
+
+         $actual.Id | Should -Be 'iwr-shaped-id'
+         $actual.Type | Should -Be 'test'
+         $actual.Source | Should -Be 'urn:test'
+         [Text.Encoding]::UTF8.GetString($actual.Data) | Should -Be 'response body'
+      }
+   }
+
    Context "Converts CloudEvent in Binary Content Mode" {
       It 'Converts a CloudEvent with all properties and json format data' {
 

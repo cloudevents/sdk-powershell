@@ -25,6 +25,16 @@ Describe "Read-CloudEventJsonData Function Tests" {
          $actual.a | Should -Be 'b'
       }
 
+      It 'Reads JSON data from a wrapper CloudEvent property' {
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'wrapped-id' |
+            Set-CloudEventJsonData -Data @{ property = 'bound' }
+         $wrapper = [pscustomobject]@{ CloudEvent = $cloudEvent }
+
+         $actual = $wrapper | Read-CloudEventJsonData
+
+         $actual.property | Should -Be 'bound'
+      }
+
       It 'Expects error when CloudEvent data is not json' {
          # Arrange
          $cloudEvent = New-CloudEvent `

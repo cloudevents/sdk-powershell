@@ -40,6 +40,32 @@ Describe "Set-CloudEventJsonData Function Tests" {
    }
 
    Context "Sets Json Data" {
+      It 'Binds CloudEvent, Data, and DataSchema from pipeline properties' {
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'property-bound-id'
+         $inputObject = [pscustomobject]@{
+            CloudEvent = $cloudEvent
+            Data = @{ property = 'bound' }
+            DataSchema = 'https://example.com/schema.json'
+         }
+
+         $actual = $inputObject | Set-CloudEventJsonData
+
+         ($actual.Data | ConvertFrom-Json -AsHashtable).property | Should -Be 'bound'
+         $actual.DataContentType.ToString() | Should -Be 'application/json'
+         $actual.DataSchema | Should -Be 'https://example.com/schema.json'
+      }
+
+      It 'Does not bind a piped CloudEvent own Data property as the replacement Data' {
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'guarded-id'
+         $cloudEvent.Data = @{ existing = 'value' }
+         $originalData = $cloudEvent.Data
+
+         { $cloudEvent | Set-CloudEventJsonData -ErrorAction Stop } |
+            Should -Throw '*The Data parameter must be specified when a CloudEvent is piped directly*'
+
+         $cloudEvent.Data | Should -Be $originalData
+      }
+
       It 'Sets json data with depth 1' {
          # Arrange
          $cloudEvent = New-CloudEvent `

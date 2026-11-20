@@ -70,5 +70,27 @@ Describe "Read-CloudEventXmlData Function Tests" {
          $actual -is [hashtable] | Should -Be $true
          $actual.l1.l2.l3.l4 | Should -Be 'wow'
       }
+
+      It 'Reads wrapper CloudEvent properties and honors each ConvertMode' {
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'wrapped-id' |
+            Set-CloudEventData -Data '<root att="true">value</root>' -DataContentType 'application/xml'
+         $wrapper = [pscustomobject]@{ CloudEvent = $cloudEvent }
+
+         $skipped = $wrapper | Read-CloudEventXmlData -ConvertMode SkipAttributes
+         $always = $wrapper | Read-CloudEventXmlData -ConvertMode AlwaysAttrValue
+         $conditional = $wrapper | Read-CloudEventXmlData -ConvertMode AttrValueWhenAttributes
+
+         $skipped.root | Should -Be 'value'
+         $always.root.Attributes.att | Should -Be 'true'
+         $always.root.Value | Should -Be 'value'
+         $conditional.root.Attributes.att | Should -Be 'true'
+         $conditional.root.Value | Should -Be 'value'
+      }
+
+      It 'Rejects unsupported ConvertMode values' {
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'invalid-mode-id'
+
+         { $cloudEvent | Read-CloudEventXmlData -ConvertMode Invalid } | Should -Throw
+      }
    }
 }

@@ -163,6 +163,37 @@ Describe "Set-CloudEventData Function Tests" {
    }
 
    Context "Errors on invalid data content type" {
+      It 'Rejects a null DataContentType property without modifying the event' {
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'test-id'
+         $cloudEvent.Data = 'original'
+         $cloudEvent.DataContentType = [System.Net.Mime.ContentType]'text/plain'
+         $inputObject = [pscustomobject]@{
+            CloudEvent = $cloudEvent
+            Data = 'updated'
+            DataContentType = $null
+         }
+
+         { $inputObject | Set-CloudEventData -ErrorAction Stop } |
+            Should -Throw '*cannot be an empty string*'
+
+         $cloudEvent.Data | Should -Be 'original'
+         $cloudEvent.DataContentType.ToString() | Should -Be 'text/plain'
+      }
+
+      It 'Uses an explicit DataContentType over a null wrapper property' {
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'test-id'
+         $inputObject = [pscustomobject]@{
+            CloudEvent = $cloudEvent
+            Data = 'updated'
+            DataContentType = $null
+         }
+
+         $actual = $inputObject | Set-CloudEventData -DataContentType 'text/plain' -ErrorAction Stop
+
+         $actual.Data | Should -Be 'updated'
+         $actual.DataContentType.ToString() | Should -Be 'text/plain'
+      }
+
       It 'Throws error on invalid MIME content type' {
          # Arrange
          $invalidContentType = 'invalid'

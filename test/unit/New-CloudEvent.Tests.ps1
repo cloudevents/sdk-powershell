@@ -102,6 +102,53 @@ Describe "New-CloudEvent Function Tests" {
          $actual[1].Time | Should -BeLessOrEqual $after
       }
 
+      It 'Generates a timestamp when cloning an event without a Time' {
+         $original = New-CloudEvent -Type test -Source 'urn:test' -Id 'original-id'
+         $original.Time = $null
+         $before = Get-Date
+
+         $actual = $original | New-CloudEvent -ErrorAction Stop
+         $after = Get-Date
+
+         $actual.Id | Should -Be 'original-id'
+         $actual.Time | Should -BeGreaterOrEqual $before
+         $actual.Time | Should -BeLessOrEqual $after
+      }
+
+      It 'Treats null Time properties as omitted for each pipeline record' {
+         $providedTime = [DateTime]'2025-02-03T04:05:06'
+         $records = @(
+            [pscustomobject]@{ Type = 'test.one'; Source = 'urn:test'; Time = $providedTime }
+            [pscustomobject]@{ Type = 'test.two'; Source = 'urn:test'; Time = $null }
+            [pscustomobject]@{ Type = 'test.three'; Source = 'urn:test' }
+         )
+         $before = Get-Date
+
+         $actual = @($records | New-CloudEvent -ErrorAction Stop)
+         $after = Get-Date
+
+         $actual.Count | Should -Be 3
+         $actual[0].Time | Should -Be $providedTime
+         $actual[1].Time | Should -BeGreaterOrEqual $before
+         $actual[1].Time | Should -BeLessOrEqual $after
+         $actual[2].Time | Should -BeGreaterOrEqual $before
+         $actual[2].Time | Should -BeLessOrEqual $after
+      }
+
+      It 'Uses an explicit Time even when a pipeline record has a null Time' {
+         $providedTime = [DateTime]'2025-02-03T04:05:06'
+         $record = [pscustomobject]@{ Type = 'test'; Source = 'urn:test'; Time = $null }
+
+         $actual = $record | New-CloudEvent -Time $providedTime -ErrorAction Stop
+
+         $actual.Time | Should -Be $providedTime
+      }
+
+      It 'Rejects an explicitly null Time' {
+         { New-CloudEvent -Type test -Source 'urn:test' -Time $null -ErrorAction Stop } |
+            Should -Throw '*Time cannot be null or empty*'
+      }
+
       It 'Binds explicit Id, Time, and DataSchema pipeline properties' {
          $expectedTime = [DateTime]'2025-02-03T04:05:06'
          $record = [pscustomobject]@{

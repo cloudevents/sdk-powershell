@@ -42,7 +42,8 @@ function New-CloudEvent {
    Specifies the 'id' attribute of the cloud event.
 
    .PARAMETER Time
-   Specifies the 'time' attribute of the cloud event.
+   Specifies the 'time' attribute of the cloud event. A missing or null pipeline
+   property is replaced with the current time.
 
    .PARAMETER DataSchema
    Specifies the absolute URI of the schema that the cloud event 'data' adheres to.
@@ -83,8 +84,7 @@ function New-CloudEvent {
         $Id,
 
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [ValidateNotNullOrEmpty()]
-        [DateTime]
+        [Nullable[DateTime]]
         $Time,
 
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
@@ -96,6 +96,10 @@ function New-CloudEvent {
         $explicitId = $PSBoundParameters.ContainsKey('Id')
         $explicitTime = $PSBoundParameters.ContainsKey('Time')
         $explicitDataSchema = $PSBoundParameters.ContainsKey('DataSchema')
+
+        if ($explicitTime -and $null -eq $Time) {
+            throw 'Time cannot be null or empty.'
+        }
 
         if ($explicitDataSchema -and $null -eq $DataSchema) {
             throw 'DataSchema cannot be null or empty.'
@@ -111,7 +115,9 @@ function New-CloudEvent {
         }
 
         if (-not $explicitTime -and
-            (-not $MyInvocation.ExpectingInput -or $null -eq $_.PSObject.Properties['Time'])) {
+            (-not $MyInvocation.ExpectingInput -or
+                $null -eq $_.PSObject.Properties['Time'] -or
+                $null -eq $_.PSObject.Properties['Time'].Value)) {
             $Time = Get-Date
         }
 
@@ -224,7 +230,6 @@ function Set-CloudEventData {
     }
 
     PROCESS {
-        $contentTypeValue = $null
         $schemaValue = $null
 
         if ($MyInvocation.ExpectingInput -and
@@ -241,19 +246,12 @@ function Set-CloudEventData {
         }
 
         $setDataContentType = $explicitDataContentType -or $null -ne $recordDataContentType
-        if ($explicitDataContentType) {
-            $contentTypeValue = $DataContentType
-        }
-        elseif ($null -ne $recordDataContentType) {
-            $contentTypeValue = $recordDataContentType.Value
-        }
-
         $contentType = $null
         if ($setDataContentType) {
             # https://github.com/cloudevents/spec/blob/main/cloudevents/spec.md#datacontenttype
             $contentType = New-Object `
                 -TypeName 'System.Net.Mime.ContentType' `
-                -ArgumentList ($contentTypeValue)
+                -ArgumentList ($DataContentType)
         }
 
         $setDataSchema = $explicitDataSchema -or $null -ne $recordDataSchema

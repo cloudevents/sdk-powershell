@@ -39,6 +39,45 @@ Describe "Set-CloudEventData Function Tests" {
          $actual.DataContentType | Should -BeNullOrEmpty
       }
 
+      It 'Binds CloudEvent, Data, DataContentType, and DataSchema from pipeline properties' {
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'property-bound-id'
+         $inputObject = [pscustomobject]@{
+            CloudEvent = $cloudEvent
+            Data = 'property-bound data'
+            DataContentType = 'text/plain'
+            DataSchema = 'https://example.com/schema.json'
+         }
+
+         $actual = $inputObject | Set-CloudEventData
+
+         $actual | Should -Be $cloudEvent
+         $actual.Data | Should -Be 'property-bound data'
+         $actual.DataContentType.ToString() | Should -Be 'text/plain'
+         $actual.DataSchema | Should -Be 'https://example.com/schema.json'
+      }
+
+      It 'Does not reuse a prior wrapper DataContentType for the next pipeline record' {
+         $firstEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'first-id'
+         $secondEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'second-id'
+         $secondEvent.DataContentType = [System.Net.Mime.ContentType]'application/json'
+         $records = @(
+            [pscustomobject]@{
+               CloudEvent = $firstEvent
+               Data = 'first'
+               DataContentType = 'text/plain'
+            }
+            [pscustomobject]@{
+               CloudEvent = $secondEvent
+               Data = 'second'
+            }
+         )
+
+         $actual = @($records | Set-CloudEventData)
+
+         $actual[0].DataContentType.ToString() | Should -Be 'text/plain'
+         $actual[1].DataContentType.ToString() | Should -Be 'application/json'
+      }
+
       It 'Sets xml text data' {
          # Arrange
          $cloudEvent = New-CloudEvent `
@@ -97,9 +136,64 @@ Describe "Set-CloudEventData Function Tests" {
          { $cloudEvent | Set-CloudEventData -Data '{}' -DataContentType 'application/json' -DataSchema $DataSchema } |
             Should -Throw
       }
+
+      It 'Does not modify the event when DataSchema validation fails' -TestCases @(
+         @{ DataSchema = $null }
+         @{ DataSchema = 'schema.json' }
+      ) {
+         param($DataSchema)
+
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'test-id'
+         $cloudEvent.Data = 'original'
+         $cloudEvent.DataContentType = [System.Net.Mime.ContentType]'application/original'
+         $cloudEvent.DataSchema = [System.Uri]'https://example.com/original.json'
+
+         {
+            $cloudEvent | Set-CloudEventData `
+               -Data 'updated' `
+               -DataContentType 'text/plain' `
+               -DataSchema $DataSchema `
+               -ErrorAction Stop
+         } | Should -Throw
+
+         $cloudEvent.Data | Should -Be 'original'
+         $cloudEvent.DataContentType.ToString() | Should -Be 'application/original'
+         $cloudEvent.DataSchema | Should -Be 'https://example.com/original.json'
+      }
    }
 
    Context "Errors on invalid data content type" {
+      It 'Rejects a null DataContentType property without modifying the event' {
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'test-id'
+         $cloudEvent.Data = 'original'
+         $cloudEvent.DataContentType = [System.Net.Mime.ContentType]'text/plain'
+         $inputObject = [pscustomobject]@{
+            CloudEvent = $cloudEvent
+            Data = 'updated'
+            DataContentType = $null
+         }
+
+         { $inputObject | Set-CloudEventData -ErrorAction Stop } |
+            Should -Throw '*cannot be an empty string*'
+
+         $cloudEvent.Data | Should -Be 'original'
+         $cloudEvent.DataContentType.ToString() | Should -Be 'text/plain'
+      }
+
+      It 'Uses an explicit DataContentType over a null wrapper property' {
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'test-id'
+         $inputObject = [pscustomobject]@{
+            CloudEvent = $cloudEvent
+            Data = 'updated'
+            DataContentType = $null
+         }
+
+         $actual = $inputObject | Set-CloudEventData -DataContentType 'text/plain' -ErrorAction Stop
+
+         $actual.Data | Should -Be 'updated'
+         $actual.DataContentType.ToString() | Should -Be 'text/plain'
+      }
+
       It 'Throws error on invalid MIME content type' {
          # Arrange
          $invalidContentType = 'invalid'

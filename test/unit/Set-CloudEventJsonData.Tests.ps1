@@ -37,9 +37,58 @@ Describe "Set-CloudEventJsonData Function Tests" {
          { $cloudEvent | Set-CloudEventJsonData -Data @{} -DataSchema $DataSchema } |
             Should -Throw
       }
+
+      It 'Does not modify the event when DataSchema validation fails' -TestCases @(
+         @{ DataSchema = $null }
+         @{ DataSchema = 'schema.json' }
+      ) {
+         param($DataSchema)
+
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'test-id'
+         $cloudEvent.Data = 'original'
+         $cloudEvent.DataContentType = [System.Net.Mime.ContentType]'application/original'
+         $cloudEvent.DataSchema = [System.Uri]'https://example.com/original.json'
+
+         {
+            $cloudEvent | Set-CloudEventJsonData `
+               -Data @{ updated = $true } `
+               -DataSchema $DataSchema `
+               -ErrorAction Stop
+         } | Should -Throw
+
+         $cloudEvent.Data | Should -Be 'original'
+         $cloudEvent.DataContentType.ToString() | Should -Be 'application/original'
+         $cloudEvent.DataSchema | Should -Be 'https://example.com/original.json'
+      }
    }
 
    Context "Sets Json Data" {
+      It 'Binds CloudEvent, Data, and DataSchema from pipeline properties' {
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'property-bound-id'
+         $inputObject = [pscustomobject]@{
+            CloudEvent = $cloudEvent
+            Data = @{ property = 'bound' }
+            DataSchema = 'https://example.com/schema.json'
+         }
+
+         $actual = $inputObject | Set-CloudEventJsonData
+
+         ($actual.Data | ConvertFrom-Json -AsHashtable).property | Should -Be 'bound'
+         $actual.DataContentType.ToString() | Should -Be 'application/json'
+         $actual.DataSchema | Should -Be 'https://example.com/schema.json'
+      }
+
+      It 'Does not bind a piped CloudEvent own Data property as the replacement Data' {
+         $cloudEvent = New-CloudEvent -Type test -Source 'urn:test' -Id 'guarded-id'
+         $cloudEvent.Data = @{ existing = 'value' }
+         $originalData = $cloudEvent.Data
+
+         { $cloudEvent | Set-CloudEventJsonData -ErrorAction Stop } |
+            Should -Throw '*The Data parameter must be specified when a CloudEvent is piped directly*'
+
+         $cloudEvent.Data | Should -Be $originalData
+      }
+
       It 'Sets json data with depth 1' {
          # Arrange
          $cloudEvent = New-CloudEvent `

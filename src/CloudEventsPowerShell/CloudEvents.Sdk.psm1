@@ -6,6 +6,21 @@
 $xmlDataSerilizationLibPath = Join-Path (Join-Path $PSScriptRoot 'dataserialization') 'xml.ps1'
 . $xmlDataSerilizationLibPath
 
+function Assert-CloudEventDataSchema {
+    param(
+        [System.Uri]
+        $DataSchema
+    )
+
+    if ($null -eq $DataSchema) {
+        throw 'DataSchema cannot be null or empty.'
+    }
+
+    if (-not $DataSchema.IsAbsoluteUri) {
+        throw 'DataSchema must be an absolute URI.'
+    }
+}
+
 function New-CloudEvent {
     <#
    .SYNOPSIS
@@ -14,7 +29,7 @@ function New-CloudEvent {
 
    .DESCRIPTION
    This function creates a new cloud event object with the provided parameters.
-   The result cloud event object has no data. Use Add-CloudEvent* functions to
+   The result cloud event object has no data. Use Set-CloudEvent*Data functions to
    add data to the cloud event object.
 
    .PARAMETER Type
@@ -27,7 +42,8 @@ function New-CloudEvent {
    Specifies the 'id' attribute of the cloud event.
 
    .PARAMETER Time
-   Specifies the 'time' attribute of the cloud event.
+   Specifies the 'time' attribute of the cloud event. A missing or null pipeline
+   property is replaced with the current time.
 
    .PARAMETER DataSchema
    Specifies the absolute URI of the schema that the cloud event 'data' adheres to.
@@ -36,38 +52,83 @@ function New-CloudEvent {
    New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io' -Id '6e8bc430-9c3a-11d9-9669-0800200c9a66' -Time (Get-Date)
 
    Creates a cloud event with Type, Source, Id, and Time
+
+   .EXAMPLE
+   [pscustomobject]@{ Type = 'com.example.created'; Source = 'urn:example' } | New-CloudEvent
+
+   Creates an event from pipeline properties and generates its Id and Time.
+
+   .EXAMPLE
+   $records | New-CloudEvent -DataSchema { $_.SchemaUri } -Time { $_.EventTime }
+
+   Resolves the schema and time separately for each pipeline record.
+
+   .INPUTS
+   System.Management.Automation.PSObject with Type, Source, Id, Time, and/or DataSchema properties.
+
+   .OUTPUTS
+   CloudNative.CloudEvents.CloudEvent
 #>
 
+    [OutputType([CloudNative.CloudEvents.CloudEvent])]
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [ValidateNotNullOrEmpty()]
         [string]
         $Type,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [ValidateNotNullOrEmpty()]
         [System.Uri]
         $Source,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [ValidateNotNullOrEmpty()]
         [string]
         $Id,
 
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [DateTime]
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        [Nullable[DateTime]]
         $Time,
 
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [ValidateScript({ $_.IsAbsoluteUri })]
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [System.Uri]
         $DataSchema
     )
 
+    BEGIN {
+        $explicitId = $PSBoundParameters.ContainsKey('Id')
+        $explicitTime = $PSBoundParameters.ContainsKey('Time')
+        $explicitDataSchema = $PSBoundParameters.ContainsKey('DataSchema')
+
+        if ($explicitTime -and $null -eq $PSBoundParameters['Time']) {
+            throw 'Time cannot be null or empty.'
+        }
+
+        if ($explicitDataSchema -and $null -eq $PSBoundParameters['DataSchema']) {
+            throw 'DataSchema cannot be null or empty.'
+        }
+    }
+
     PROCESS {
+        $eventDataSchema = $null
+
+        if (-not $explicitId -and
+            (-not $MyInvocation.ExpectingInput -or $null -eq $_.PSObject.Properties['Id'])) {
+            $Id = [Guid]::NewGuid().ToString()
+        }
+
+        if (-not $explicitTime -and
+            (-not $MyInvocation.ExpectingInput -or
+                $null -eq $_.PSObject.Properties['Time'] -or
+                $null -eq $_.PSObject.Properties['Time'].Value)) {
+            $Time = Get-Date
+        }
+        elseif ($explicitTime -and $null -eq $Time) {
+            throw 'Time cannot be null or empty.'
+        }
+
         $cloudEvent = New-Object `
             -TypeName 'CloudNative.CloudEvents.CloudEvent' `
             -ArgumentList @(
@@ -77,8 +138,24 @@ function New-CloudEvent {
             $Time,
             @())
 
-        if ($PSBoundParameters.ContainsKey('DataSchema')) {
-            $cloudEvent.DataSchema = $DataSchema
+        $recordDataSchema = $null
+        if ($MyInvocation.ExpectingInput) {
+            $recordDataSchema = $_.PSObject.Properties['DataSchema']
+        }
+
+        if ($explicitDataSchema) {
+            $eventDataSchema = $DataSchema
+        }
+        elseif ($null -ne $recordDataSchema) {
+            $eventDataSchema = $recordDataSchema.Value
+            if ($null -ne $eventDataSchema) {
+                $eventDataSchema = [System.Uri]$eventDataSchema
+            }
+        }
+
+        if ($explicitDataSchema -or $null -ne $eventDataSchema) {
+            Assert-CloudEventDataSchema $eventDataSchema
+            $cloudEvent.DataSchema = $eventDataSchema
         }
 
         Write-Output $cloudEvent
@@ -107,24 +184,38 @@ function Set-CloudEventData {
    Specifies the absolute URI of the schema that the cloud event 'data' adheres to.
    If omitted, the existing 'dataschema' attribute is preserved.
 
+   .INPUTS
+   System.Management.Automation.PSObject with CloudEvent, Data, DataContentType, or DataSchema properties.
+
+   .OUTPUTS
+   CloudNative.CloudEvents.CloudEvent
 
    .EXAMPLE
    $cloudEvent = New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io' -Id '6e8bc430-9c3a-11d9-9669-0800200c9a66' -Time (Get-Date)
    $cloudEvent | Set-CloudEventData -Data '<much wow="xml"/>' -DataContentType 'application/xml'
 
    Sets xml data to the cloud event
+
+   .EXAMPLE
+   [pscustomobject]@{
+       CloudEvent = $cloudEvent
+       Data = 'Hello'
+       DataContentType = 'text/plain'
+   } | Set-CloudEventData
+
+   Sets data from pipeline properties.
 #>
 
+    [OutputType([CloudNative.CloudEvents.CloudEvent])]
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true,
-            ValueFromPipeline = $true)]
-        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+        [Alias('InputObject', 'Event')]
+        [ValidateNotNull()]
         [CloudNative.CloudEvents.CloudEvent]
         $CloudEvent,
 
-        [Parameter(Mandatory = $true,
-            ValueFromPipeline = $false)]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [ValidateNotNullOrEmpty()]
         [object]
         $Data,
@@ -132,33 +223,69 @@ function Set-CloudEventData {
         # CloudEvent 'datacontenttype' attribute. Content type of the 'data' attribute value.
         # This attribute enables the data attribute to carry any type of content, whereby
         # format and encoding might differ from that of the chosen event format.
-        [Parameter(Mandatory = $false,
-            ValueFromPipeline = $false)]
+        [Parameter(ValueFromPipelineByPropertyName = $true)]
         [string]
         $DataContentType,
 
-        [Parameter(Mandatory = $false,
-            ValueFromPipeline = $false)]
-        [ValidateNotNullOrEmpty()]
-        [ValidateScript({ $_.IsAbsoluteUri })]
+        [Parameter(ValueFromPipelineByPropertyName = $true)]
         [System.Uri]
         $DataSchema)
 
+    BEGIN {
+        $explicitData = $PSBoundParameters.ContainsKey('Data')
+        $explicitDataContentType = $PSBoundParameters.ContainsKey('DataContentType')
+        $explicitDataSchema = $PSBoundParameters.ContainsKey('DataSchema')
+    }
+
     PROCESS {
+        $schemaValue = $null
 
-        $cloudEvent.Data = $Data
+        if ($MyInvocation.ExpectingInput -and
+            $_ -is [CloudNative.CloudEvents.CloudEvent] -and
+            -not $explicitData) {
+            throw 'The Data parameter must be specified when a CloudEvent is piped directly.'
+        }
 
-        if ($PSBoundParameters.ContainsKey('DataContentType')) {
+        $recordDataContentType = $null
+        $recordDataSchema = $null
+        if ($MyInvocation.ExpectingInput -and $_ -isnot [CloudNative.CloudEvents.CloudEvent]) {
+            $recordDataContentType = $_.PSObject.Properties['DataContentType']
+            $recordDataSchema = $_.PSObject.Properties['DataSchema']
+        }
+
+        $setDataContentType = $explicitDataContentType -or $null -ne $recordDataContentType
+        $contentType = $null
+        if ($setDataContentType) {
             # https://github.com/cloudevents/spec/blob/main/cloudevents/spec.md#datacontenttype
             $contentType = New-Object `
                 -TypeName 'System.Net.Mime.ContentType' `
                 -ArgumentList ($DataContentType)
-
-            $cloudEvent.DataContentType = $contentType
         }
 
-        if ($PSBoundParameters.ContainsKey('DataSchema')) {
-            $cloudEvent.DataSchema = $DataSchema
+        $setDataSchema = $explicitDataSchema -or $null -ne $recordDataSchema
+        if ($explicitDataSchema) {
+            $schemaValue = $DataSchema
+        }
+        elseif ($null -ne $recordDataSchema) {
+            $schemaValue = $recordDataSchema.Value
+            if ($null -ne $schemaValue) {
+                $schemaValue = [System.Uri]$schemaValue
+            }
+        }
+
+        if ($setDataSchema -and $null -ne $schemaValue) {
+            Assert-CloudEventDataSchema $schemaValue
+        }
+        elseif ($explicitDataSchema) {
+            Assert-CloudEventDataSchema $schemaValue
+        }
+
+        $cloudEvent.Data = $Data
+        if ($setDataContentType) {
+            $cloudEvent.DataContentType = $contentType
+        }
+        if ($setDataSchema -and $null -ne $schemaValue) {
+            $cloudEvent.DataSchema = $schemaValue
         }
 
         Write-Output $CloudEvent
@@ -190,41 +317,81 @@ function Set-CloudEventJsonData {
    Specifies the absolute URI of the schema that the cloud event 'data' adheres to.
    If omitted, the existing 'dataschema' attribute is preserved.
 
+   .INPUTS
+   System.Management.Automation.PSObject with CloudEvent, Data, or DataSchema properties.
+
+   .OUTPUTS
+   CloudNative.CloudEvents.CloudEvent
 
    .EXAMPLE
    $cloudEvent = New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io' -Id '6e8bc430-9c3a-11d9-9669-0800200c9a66' -Time (Get-Date)
    $cloudEvent | Set-CloudEventJsonData -Data @{ 'key1' = 'value1'; 'key2' = 'value2'; }
 
    Sets JSON data to the cloud event
+
+   .EXAMPLE
+   [pscustomobject]@{ CloudEvent = $cloudEvent; Data = @{ key = 'value' } } | Set-CloudEventJsonData
+
+   Sets JSON data from pipeline properties.
 #>
 
+    [OutputType([CloudNative.CloudEvents.CloudEvent])]
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true,
-            ValueFromPipeline = $true)]
-        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+        [Alias('InputObject', 'Event')]
+        [ValidateNotNull()]
         [CloudNative.CloudEvents.CloudEvent]
         $CloudEvent,
 
-        [Parameter(Mandatory = $true,
-            ValueFromPipeline = $false)]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [ValidateNotNull()]
         [Hashtable]
         $Data,
 
-        [Parameter(Mandatory = $false,
-            ValueFromPipeline = $false)]
         [int]
         $Depth = 3,
 
-        [Parameter(Mandatory = $false,
-            ValueFromPipeline = $false)]
-        [ValidateNotNullOrEmpty()]
-        [ValidateScript({ $_.IsAbsoluteUri })]
+        [Parameter(ValueFromPipelineByPropertyName = $true)]
         [System.Uri]
         $DataSchema)
 
+    BEGIN {
+        $explicitData = $PSBoundParameters.ContainsKey('Data')
+        $explicitDataSchema = $PSBoundParameters.ContainsKey('DataSchema')
+    }
+
     PROCESS {
+        $schemaValue = $null
+
+        if ($MyInvocation.ExpectingInput -and
+            $_ -is [CloudNative.CloudEvents.CloudEvent] -and
+            -not $explicitData) {
+            throw 'The Data parameter must be specified when a CloudEvent is piped directly.'
+        }
+
+        $recordDataSchema = $null
+        if ($MyInvocation.ExpectingInput -and $_ -isnot [CloudNative.CloudEvents.CloudEvent]) {
+            $recordDataSchema = $_.PSObject.Properties['DataSchema']
+        }
+
+        $setDataSchema = $explicitDataSchema -or $null -ne $recordDataSchema
+        if ($explicitDataSchema) {
+            $schemaValue = $DataSchema
+        }
+        elseif ($null -ne $recordDataSchema) {
+            $schemaValue = $recordDataSchema.Value
+            if ($null -ne $schemaValue) {
+                $schemaValue = [System.Uri]$schemaValue
+            }
+        }
+
+        if ($setDataSchema -and $null -ne $schemaValue) {
+            Assert-CloudEventDataSchema $schemaValue
+        }
+        elseif ($explicitDataSchema) {
+            Assert-CloudEventDataSchema $schemaValue
+        }
 
         # DataContentType is set to 'application/json'
         # https://github.com/cloudevents/spec/blob/main/cloudevents/spec.md#datacontenttype
@@ -232,11 +399,12 @@ function Set-CloudEventJsonData {
             -TypeName 'System.Net.Mime.ContentType' `
             -ArgumentList ([System.Net.Mime.MediaTypeNames+Application]::Json)
 
-        $cloudEvent.DataContentType = $dataContentType
-        $cloudEvent.Data = ConvertTo-Json -InputObject $Data -Depth $Depth
+        $serializedData = ConvertTo-Json -InputObject $Data -Depth $Depth
 
-        if ($PSBoundParameters.ContainsKey('DataSchema')) {
-            $cloudEvent.DataSchema = $DataSchema
+        $cloudEvent.DataContentType = $dataContentType
+        $cloudEvent.Data = $serializedData
+        if ($setDataSchema -and $null -ne $schemaValue) {
+            $cloudEvent.DataSchema = $schemaValue
         }
 
         Write-Output $CloudEvent
@@ -267,41 +435,100 @@ function Set-CloudEventXmlData {
    Otherwise
    @{'root' = @{'Attributes' = @{'att1' = 'true'}; 'Value' = 'val-1'}} would be '<root><Attributes><att1>true</att1></Attributes><Value>val-1</Value></root>'
 
+   .PARAMETER DataSchema
+   Specifies the absolute URI of the schema that the cloud event 'data' adheres to.
+   If omitted, the existing 'dataschema' attribute is preserved.
+
+   .INPUTS
+   System.Management.Automation.PSObject with CloudEvent, Data, or DataSchema properties.
+
+   .OUTPUTS
+   CloudNative.CloudEvents.CloudEvent
 
    .EXAMPLE
    $cloudEvent = New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io' -Id '6e8bc430-9c3a-11d9-9669-0800200c9a66' -Time (Get-Date)
    $cloudEvent | Set-CloudEventXmlData -Data @{ 'key1' = 'value1'; 'key2' = 'value2'; } -AttributesKeysInElementAttributes $true
 
    Sets XML data in the cloud event
+
+   .EXAMPLE
+   [pscustomobject]@{ CloudEvent = $cloudEvent; Data = @{ root = 'value' } } |
+       Set-CloudEventXmlData -AttributesKeysInElementAttributes $false
+
+   Sets XML data from pipeline properties.
 #>
 
+    [OutputType([CloudNative.CloudEvents.CloudEvent])]
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true,
-            ValueFromPipeline = $true)]
-        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+        [Alias('InputObject', 'Event')]
+        [ValidateNotNull()]
         [CloudNative.CloudEvents.CloudEvent]
         $CloudEvent,
 
-        [Parameter(Mandatory = $true,
-            ValueFromPipeline = $false)]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [ValidateNotNull()]
         [Hashtable]
         $Data,
 
         [Parameter(Mandatory = $true)]
         [bool]
-        $AttributesKeysInElementAttributes)
+        $AttributesKeysInElementAttributes,
+
+        [Parameter(ValueFromPipelineByPropertyName = $true)]
+        [System.Uri]
+        $DataSchema)
+
+    BEGIN {
+        $explicitData = $PSBoundParameters.ContainsKey('Data')
+        $explicitDataSchema = $PSBoundParameters.ContainsKey('DataSchema')
+    }
 
     PROCESS {
+        $schemaValue = $null
+
+        if ($MyInvocation.ExpectingInput -and
+            $_ -is [CloudNative.CloudEvents.CloudEvent] -and
+            -not $explicitData) {
+            throw 'The Data parameter must be specified when a CloudEvent is piped directly.'
+        }
+
+        $recordDataSchema = $null
+        if ($MyInvocation.ExpectingInput -and $_ -isnot [CloudNative.CloudEvents.CloudEvent]) {
+            $recordDataSchema = $_.PSObject.Properties['DataSchema']
+        }
+
+        $setDataSchema = $explicitDataSchema -or $null -ne $recordDataSchema
+        if ($explicitDataSchema) {
+            $schemaValue = $DataSchema
+        }
+        elseif ($null -ne $recordDataSchema) {
+            $schemaValue = $recordDataSchema.Value
+            if ($null -ne $schemaValue) {
+                $schemaValue = [System.Uri]$schemaValue
+            }
+        }
+
+        if ($setDataSchema -and $null -ne $schemaValue) {
+            Assert-CloudEventDataSchema $schemaValue
+        }
+        elseif ($explicitDataSchema) {
+            Assert-CloudEventDataSchema $schemaValue
+        }
 
         # DataContentType is set to 'application/xml'
         $dataContentType = New-Object `
             -TypeName 'System.Net.Mime.ContentType' `
             -ArgumentList ([System.Net.Mime.MediaTypeNames+Application]::Xml)
 
+        $serializedData = ConvertTo-CEDataXml -InputObject $Data -AttributesKeysInElementAttributes $AttributesKeysInElementAttributes
+
         $cloudEvent.DataContentType = $dataContentType
-        $cloudEvent.Data = ConvertTo-CEDataXml -InputObject $Data -AttributesKeysInElementAttributes $AttributesKeysInElementAttributes
+        $cloudEvent.Data = $serializedData
+        if ($setDataSchema -and $null -ne $schemaValue) {
+            $cloudEvent.DataSchema = $schemaValue
+        }
 
         Write-Output $CloudEvent
     }
@@ -316,7 +543,7 @@ function Read-CloudEventData {
    This function gets the data from a cloud event.
 
    .DESCRIPTION
-   This function gets the data as-is from a cloud event. It is equiualent of accessing the Data property of a CloudEvent object
+   This function gets the data as-is from a cloud event. It is equivalent to accessing the Data property of a CloudEvent object.
 
    .PARAMETER CloudEvent
    Specifies the cloud event object to get data from.
@@ -326,13 +553,25 @@ function Read-CloudEventData {
    $cloudEvent | Read-CloudEventData
 
    Reads data from a cloud event received on the http response
+
+   .EXAMPLE
+   [pscustomobject]@{ CloudEvent = $cloudEvent } | Read-CloudEventData
+
+   Reads data from an object with a CloudEvent property.
+
+   .INPUTS
+   CloudNative.CloudEvents.CloudEvent or an object with a CloudEvent property.
+
+   .OUTPUTS
+   System.Object
 #>
 
+    [OutputType([object])]
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true,
-            ValueFromPipeline = $true)]
-        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+        [Alias('InputObject', 'Event')]
+        [ValidateNotNull()]
         [CloudNative.CloudEvents.CloudEvent]
         $CloudEvent
     )
@@ -346,7 +585,7 @@ function Read-CloudEventData {
 function Read-CloudEventJsonData {
     <#
    .SYNOPSIS
-   This function gets JSON fromat data from a cloud event as a PowerShell hashtable.
+   This function gets JSON format data from a cloud event as a PowerShell hashtable.
 
    .DESCRIPTION
    This function gets the data from a cloud event and converts it to a PowerShell hashtable.
@@ -363,6 +602,17 @@ function Read-CloudEventJsonData {
    $hashtable = $cloudEvent | Read-CloudEventJsonData
 
    Reads JSON data as a hashtable from a cloud event received on the http response
+
+   .EXAMPLE
+   [pscustomobject]@{ CloudEvent = $cloudEvent } | Read-CloudEventJsonData
+
+   Reads JSON data from an object with a CloudEvent property.
+
+   .INPUTS
+   CloudNative.CloudEvents.CloudEvent or an object with a CloudEvent property.
+
+   .OUTPUTS
+   System.Collections.Hashtable
 #>
 
 
@@ -372,16 +622,15 @@ function Read-CloudEventJsonData {
    if the data content type is 'application/json', otherwise otherwise non-terminating error and no result
 #>
 
+    [OutputType([hashtable])]
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true,
-            ValueFromPipeline = $true)]
-        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+        [Alias('InputObject', 'Event')]
+        [ValidateNotNull()]
         [CloudNative.CloudEvents.CloudEvent]
         $CloudEvent,
 
-        [Parameter(Mandatory = $false,
-            ValueFromPipeline = $false)]
         [int]
         $Depth = 3
     )
@@ -418,7 +667,7 @@ function Read-CloudEventJsonData {
 function Read-CloudEventXmlData {
     <#
    .SYNOPSIS
-   This function gets XML fromat data from a cloud event as a PowerShell hashtable.
+   This function gets XML format data from a cloud event as a PowerShell hashtable.
 
    .DESCRIPTION
    This function gets the data from a cloud event and converts it to a PowerShell hashtable.
@@ -437,8 +686,8 @@ function Read-CloudEventXmlData {
             @{'key' = 'value-1'}
 
       'AlwaysAttrValue' - Each element is represented as a hashtable with two keys
-         'Attributes' - key-value pair of the cml element attributes if any, otherwise null
-         'Value' - string value represinting the xml element inner text
+         'Attributes' - key-value pair of the XML element attributes if any, otherwise null
+         'Value' - string value representing the XML element inner text
 
          Example:
             "<key1 att='true'>value1</key1><key2>value2</key2>" is converted to
@@ -474,6 +723,17 @@ function Read-CloudEventXmlData {
    $hashtable = $cloudEvent | Read-CloudEventXmlData -ConvertMode AttrValueWhenAttributes
 
    Reads XML data as a hashtable from a cloud event received on the http response
+
+   .EXAMPLE
+   [pscustomobject]@{ CloudEvent = $cloudEvent } | Read-CloudEventXmlData -ConvertMode SkipAttributes
+
+   Reads XML data from an object with a CloudEvent property.
+
+   .INPUTS
+   CloudNative.CloudEvents.CloudEvent or an object with a CloudEvent property.
+
+   .OUTPUTS
+   System.Collections.Hashtable
 #>
 
 
@@ -483,11 +743,12 @@ function Read-CloudEventXmlData {
    if the data content type is 'application/xml', otherwise non-terminating error and no result
 #>
 
+    [OutputType([hashtable])]
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true,
-            ValueFromPipeline = $true)]
-        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+        [Alias('InputObject', 'Event')]
+        [ValidateNotNull()]
         [CloudNative.CloudEvents.CloudEvent]
         $CloudEvent,
 
@@ -532,18 +793,18 @@ function ConvertTo-HttpMessage {
 
    .DESCRIPTION
    This function converts a cloud event object to a PSObject with Headers and Body properties.
-   The 'Headers' propery is a hashtable that can pe provided to the 'Headers' parameter of the Inveok-WebRequest cmdlet.
-   The 'Body' propery is byte[] that can pe provided to the 'Body' parameter of the Inveok-WebRequest cmdlet.
+   The Headers property is a hashtable suitable for the Headers parameter of Invoke-WebRequest.
+   The Body property is byte[] suitable for the Body parameter of Invoke-WebRequest.
 
    .PARAMETER CloudEvent
    Specifies the cloud event object to convert.
 
    .PARAMETER ContentMode
-   Specifies the cloud event content mode. Structured and Binary content modes are supporterd.
+   Specifies the cloud event content mode. Structured and Binary content modes are supported.
 
    .EXAMPLE
    $cloudEvent = New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io' -Id '6e8bc430-9c3a-11d9-9669-0800200c9a66' -Time (Get-Date)
-   $cloudEvent | Add-CloudEventJsonData -Data @{ 'key1' = 'value1'; 'key2' = 'value2'; }
+   $cloudEvent | Set-CloudEventJsonData -Data @{ 'key1' = 'value1'; 'key2' = 'value2'; }
 
    $cloudEvent | ConvertTo-HttpMessage -ContentMode Binary
 
@@ -551,7 +812,7 @@ function ConvertTo-HttpMessage {
 
    .EXAMPLE
    $cloudEvent = New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io' -Id '6e8bc430-9c3a-11d9-9669-0800200c9a66' -Time (Get-Date)
-   $cloudEvent | Add-CloudEventJsonData -Data @{ 'key1' = 'value1'; 'key2' = 'value2'; }
+   $cloudEvent | Set-CloudEventJsonData -Data @{ 'key1' = 'value1'; 'key2' = 'value2'; }
 
    $cloudEvent | ConvertTo-HttpMessage -ContentMode Structured
 
@@ -559,34 +820,37 @@ function ConvertTo-HttpMessage {
 
    .EXAMPLE
    $httpMessage = New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io' -Id '6e8bc430-9c3a-11d9-9669-0800200c9a66' -Time (Get-Date) | `
-                  Add-CloudEventJsonData -Data @{ 'key1' = 'value1'; 'key2' = 'value2'; } | `
+                  Set-CloudEventJsonData -Data @{ 'key1' = 'value1'; 'key2' = 'value2'; } | `
                   ConvertTo-HttpMessage -ContentMode Structured
 
    Invoke-WebRequest -Uri 'http://localhost:52673/' -Headers $httpMessage.Headers -Body $httpMessage.Body
 
    Sends a cloud event http requests to a server
+
+   .INPUTS
+   CloudNative.CloudEvents.CloudEvent
+
+   .OUTPUTS
+   System.Management.Automation.PSCustomObject with Headers and Body properties.
 #>
 
+    [OutputType([PSCustomObject])]
     [CmdletBinding()]
     param(
-        [Parameter(
-            Mandatory = $true,
-            ValueFromPipeline = $true,
-            ValueFromPipelineByPropertyName = $false)]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [Alias('InputObject', 'Event')]
         [ValidateNotNull()]
         [CloudNative.CloudEvents.CloudEvent]
         $CloudEvent,
 
-        [Parameter(
-            Mandatory = $true,
-            ValueFromPipeline = $false,
-            ValueFromPipelineByPropertyName = $false)]
+        [Parameter(Mandatory = $true)]
         [CloudNative.CloudEvents.ContentMode]
         $ContentMode)
 
     PROCESS {
         # Output Object
         $result = New-Object -TypeName PSCustomObject
+        $result.PSTypeNames.Insert(0, 'CloudEvents.HttpMessage')
 
         $cloudEventFormatter = New-Object 'CloudNative.CloudEvents.JsonEventFormatter'
 
@@ -632,7 +896,7 @@ function ConvertTo-HttpMessage {
             # .NET CloudEvents SDK for the purpose of fomatting structured mode
             $buffer = $cloudEventFormatter.EncodeStructuredEvent($cloudEvent, [ref] $contentType)
             $result | Add-Member -MemberType NoteProperty -Name 'Body' -Value $buffer
-            $result.Headers.Add('Content-Type', $contentType)
+            $result.Headers.Add('Content-Type', $contentType.ToString())
         }
 
         # Process Binary Mode
@@ -640,7 +904,7 @@ function ConvertTo-HttpMessage {
             $bodyData = $null
 
             if ($cloudEvent.DataContentType -ne $null) {
-                $result.Headers.Add('Content-Type', $cloudEvent.DataContentType)
+                $result.Headers.Add('Content-Type', $cloudEvent.DataContentType.ToString())
             }
 
             if ($cloudEvent.Data -is [byte[]]) {
@@ -687,40 +951,54 @@ function ConvertFrom-HttpMessage {
 
    .DESCRIPTION
    This function converts a Http Message (Headers and Body) to a cloud event object.
-   Result of Invoke-WebRequest that contains a cloud event can be passed as input to this
-   function binding the the 'Headers' and 'Content' properties to the 'Headers' and 'Body' paramters.
+   Results of Invoke-WebRequest that contain a cloud event can be piped to this function;
+   its 'Headers' and 'Content' properties bind to the 'Headers' and 'Body' parameters.
 
    .PARAMETER Headers
-   Specifies the Http Headers as a PowerShell hashtable.
+   Specifies the HTTP headers as an IDictionary.
 
    .PARAMETER Body
    Specifies the Http body as string or byte[].
 
+   .INPUTS
+   System.Management.Automation.PSObject with Headers and Body or Content properties.
+
+   .OUTPUTS
+   CloudNative.CloudEvents.CloudEvent
+
    .EXAMPLE
-   $httpReponse = Invoke-WebRequest -Uri 'http://localhost:52673/' -Headers $httpMessage.Headers -Body $httpMessage.Body
+   $httpResponse = Invoke-WebRequest -Uri 'http://localhost:52673/' -Headers $httpMessage.Headers -Body $httpMessage.Body
    $cloudEvent = ConvertFrom-HttpMessage -Headers $httpResponse.Headers -Body $httpResponse.Content
 
    Converts a http response to a cloud event object
+
+   .EXAMPLE
+   $httpResponse | ConvertFrom-HttpMessage
+
+   Converts a CloudEvents HTTP response received by Invoke-WebRequest.
 #>
 
+    [OutputType([CloudNative.CloudEvents.CloudEvent])]
     [CmdletBinding()]
     param(
-        [Parameter(
-            Mandatory = $true,
-            ValueFromPipeline = $false,
-            ValueFromPipelineByPropertyName = $false)]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [ValidateNotNull()]
-        [hashtable]
+        [System.Collections.IDictionary]
         $Headers,
 
-        [Parameter(
-            Mandatory = $false,
-            ValueFromPipeline = $false,
-            ValueFromPipelineByPropertyName = $false)]
-        [ValidateNotNull()]
+        [Parameter(ValueFromPipelineByPropertyName = $true)]
+        [Alias('Content')]
+        [object]
         $Body)
 
     PROCESS {
+        $normalizedHeaders = [System.Collections.Generic.Dictionary[string, object]]::new(
+            [System.StringComparer]::OrdinalIgnoreCase)
+        foreach ($header in $Headers.GetEnumerator()) {
+            $normalizedHeaders[[string]$header.Key] = $header.Value
+        }
+        $Headers = $normalizedHeaders
+
         $HttpHeaderPrefix = "ce-";
         $SpecVersionHttpHeader = $HttpHeaderPrefix + "specversion";
 
@@ -770,7 +1048,7 @@ function ConvertFrom-HttpMessage {
             else {
                 # Handle  Binary Mode
                 $version = $null
-                if ($Headers.Contains($SpecVersionHttpHeader) -and `
+                if ($Headers.ContainsKey($SpecVersionHttpHeader) -and `
                     $null -ne $Headers[$SpecVersionHttpHeader] -and `
                    ($Headers[$SpecVersionHttpHeader] | Select-Object -First 1).StartsWith('1.0')) {
                     # We do support the 1.0 cloud event version

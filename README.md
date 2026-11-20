@@ -30,22 +30,22 @@ Get-Command -Module CloudEvents.Sdk
 
 CommandType     Name                                               Version    Source
 -----------     ----                                               -------    ------
-Function        ConvertFrom-HttpMessage                            0.3.0      CloudEvents.Sdk
-Function        ConvertTo-HttpMessage                              0.3.0      CloudEvents.Sdk
-Function        New-CloudEvent                                     0.3.0      CloudEvents.Sdk
-Function        Read-CloudEventData                                0.3.0      CloudEvents.Sdk
-Function        Read-CloudEventJsonData                            0.3.0      CloudEvents.Sdk
-Function        Read-CloudEventXmlData                             0.3.0      CloudEvents.Sdk
-Function        Set-CloudEventData                                 0.3.0      CloudEvents.Sdk
-Function        Set-CloudEventJsonData                             0.3.0      CloudEvents.Sdk
-Function        Set-CloudEventXmlData                              0.3.0      CloudEvents.Sdk
+Function        ConvertFrom-HttpMessage                            0.4.0      CloudEvents.Sdk
+Function        ConvertTo-HttpMessage                              0.4.0      CloudEvents.Sdk
+Function        New-CloudEvent                                     0.4.0      CloudEvents.Sdk
+Function        Read-CloudEventData                                0.4.0      CloudEvents.Sdk
+Function        Read-CloudEventJsonData                            0.4.0      CloudEvents.Sdk
+Function        Read-CloudEventXmlData                             0.4.0      CloudEvents.Sdk
+Function        Set-CloudEventData                                 0.4.0      CloudEvents.Sdk
+Function        Set-CloudEventJsonData                             0.4.0      CloudEvents.Sdk
+Function        Set-CloudEventXmlData                              0.4.0      CloudEvents.Sdk
 ```
 
 ## Using **`CloudEvents.Sdk`** Module
 ## 1. Event Producer
 ### Create a CloudEvent object
 ```powershell
-$cloudEvent = New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io' -Id (New-Guid).Guid -Time (Get-Date)
+$cloudEvent = New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io'
 ```
 
 ### Set **JSON Data** to a CloudEvent object
@@ -80,6 +80,29 @@ $cloudEvent | Set-CloudEventJsonData -Data @{ 'Foo' = 'Hello'; 'Bar' = 'World' }
 
 Omitting `-DataSchema` when setting data preserves any schema already set on the
 event.
+
+### Create CloudEvents from pipeline properties
+`New-CloudEvent` accepts objects with `Type` and `Source` properties (and optional
+`Id`, `Time`, and `DataSchema` properties). Missing `Id` and `Time` values are
+generated for each event:
+
+```powershell
+Import-Csv .\events.csv | New-CloudEvent
+```
+
+Set commands also accept `CloudEvent`, `Data`, and supported metadata properties
+from an input object:
+
+```powershell
+[pscustomobject]@{
+    CloudEvent = $cloudEvent
+    Data = 'Hello from the pipeline'
+    DataContentType = 'text/plain'
+} | Set-CloudEventData
+```
+
+Set input objects should include `CloudEvent` and `Data` properties; the raw data
+command also accepts `DataContentType` and `DataSchema` properties.
 
 ### Set **XML Data** to a CloudEvent object
 ```powershell
@@ -123,15 +146,30 @@ Type            : com.example.object.deleted.v2
 $cloudEventStructuredHttpMessage = $cloudEvent | ConvertTo-HttpMessage -ContentMode Structured
 ```
 
+HTTP message objects are discoverable as `CloudEvents.HttpMessage` and can be
+converted back through the pipeline:
+
+```powershell
+$cloudEventStructuredHttpMessage | ConvertFrom-HttpMessage
+```
+
 ### Send CloudEvent object to HTTP server
 ```powershell
 Invoke-WebRequest -Method POST -Uri 'http://my.cloudevents.server/' -Headers $cloudEventStructuredHttpMessage.Headers -Body $cloudEventStructuredHttpMessage.Body
 ```
 
+The HTTP message output is intentionally splatted into `Invoke-WebRequest`.
+
 ## 2. Event Consumer
 ### Convert an HTTP message to a CloudEvent object
 ```powershell
 $cloudEvent = ConvertFrom-HttpMessage -Headers <headers> -Body <body>
+```
+
+An `Invoke-WebRequest` response can also be piped directly:
+
+```powershell
+$httpResponse | ConvertFrom-HttpMessage
 ```
 
 ### Read CloudEvent **JSON Data** as a **PowerShell Hashtable**

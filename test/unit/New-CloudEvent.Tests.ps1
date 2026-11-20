@@ -51,6 +51,208 @@ Describe "New-CloudEvent Function Tests" {
          $actual.DataSchema | Should -Be $expectedDataSchema
       }
 
+      It 'Creates CloudEvents from properties and generates per-event defaults' {
+         $records = @(
+            [pscustomobject]@{ Type = 'test.one'; Source = 'urn:test:one' }
+            [pscustomobject]@{ Type = 'test.two'; Source = 'urn:test:two' }
+         )
+         $before = Get-Date
+
+         $actual = @($records | New-CloudEvent)
+
+         $after = Get-Date
+         $actual.Count | Should -Be 2
+         $actual[0].Type | Should -Be 'test.one'
+         $actual[0].Source | Should -Be 'urn:test:one'
+         $actual[1].Type | Should -Be 'test.two'
+         $actual[1].Source | Should -Be 'urn:test:two'
+         [Guid]::Parse($actual[0].Id) | Should -Not -BeNullOrEmpty
+         [Guid]::Parse($actual[1].Id) | Should -Not -BeNullOrEmpty
+         $actual[0].Id | Should -Not -Be $actual[1].Id
+         $actual[0].Time | Should -BeGreaterOrEqual $before
+         $actual[0].Time | Should -BeLessOrEqual $after
+         $actual[1].Time | Should -BeGreaterOrEqual $before
+         $actual[1].Time | Should -BeLessOrEqual $after
+      }
+
+      It 'Generates missing defaults when later pipeline records omit Id and Time' {
+         $providedTime = [DateTime]'2025-02-03T04:05:06'
+         $records = @(
+            [pscustomobject]@{
+               Type = 'test.one'
+               Source = 'urn:test:one'
+               Id = 'provided-id'
+               Time = $providedTime
+            }
+            [pscustomobject]@{
+               Type = 'test.two'
+               Source = 'urn:test:two'
+            }
+         )
+         $before = Get-Date
+
+         $actual = @($records | New-CloudEvent)
+         $after = Get-Date
+
+         $actual[0].Id | Should -Be 'provided-id'
+         $actual[0].Time | Should -Be $providedTime
+         [Guid]::Parse($actual[1].Id) | Should -Not -BeNullOrEmpty
+         $actual[1].Id | Should -Not -Be 'provided-id'
+         $actual[1].Time | Should -BeGreaterOrEqual $before
+         $actual[1].Time | Should -BeLessOrEqual $after
+      }
+
+      It 'Generates a timestamp when cloning an event without a Time' {
+         $original = New-CloudEvent -Type test -Source 'urn:test' -Id 'original-id'
+         $original.Time = $null
+         $before = Get-Date
+
+         $actual = $original | New-CloudEvent -ErrorAction Stop
+         $after = Get-Date
+
+         $actual.Id | Should -Be 'original-id'
+         $actual.Time | Should -BeGreaterOrEqual $before
+         $actual.Time | Should -BeLessOrEqual $after
+      }
+
+      It 'Treats null Time properties as omitted for each pipeline record' {
+         $providedTime = [DateTime]'2025-02-03T04:05:06'
+         $records = @(
+            [pscustomobject]@{ Type = 'test.one'; Source = 'urn:test'; Time = $providedTime }
+            [pscustomobject]@{ Type = 'test.two'; Source = 'urn:test'; Time = $null }
+            [pscustomobject]@{ Type = 'test.three'; Source = 'urn:test' }
+         )
+         $before = Get-Date
+
+         $actual = @($records | New-CloudEvent -ErrorAction Stop)
+         $after = Get-Date
+
+         $actual.Count | Should -Be 3
+         $actual[0].Time | Should -Be $providedTime
+         $actual[1].Time | Should -BeGreaterOrEqual $before
+         $actual[1].Time | Should -BeLessOrEqual $after
+         $actual[2].Time | Should -BeGreaterOrEqual $before
+         $actual[2].Time | Should -BeLessOrEqual $after
+      }
+
+      It 'Uses an explicit Time even when a pipeline record has a null Time' {
+         $providedTime = [DateTime]'2025-02-03T04:05:06'
+         $record = [pscustomobject]@{ Type = 'test'; Source = 'urn:test'; Time = $null }
+
+         $actual = $record | New-CloudEvent -Time $providedTime -ErrorAction Stop
+
+         $actual.Time | Should -Be $providedTime
+      }
+
+      It 'Rejects an explicitly null Time' {
+         { New-CloudEvent -Type test -Source 'urn:test' -Time $null -ErrorAction Stop } |
+            Should -Throw '*Time cannot be null or empty*'
+      }
+
+      It 'Resolves delay-bound Time and DataSchema for each pipeline record' {
+         $records = @(
+            [pscustomobject]@{
+               Type = 'test.one'
+               Source = 'urn:test'
+               EventTime = [DateTime]'2025-02-03T04:05:06'
+               SchemaUri = 'https://example.com/one'
+            }
+            [pscustomobject]@{
+               Type = 'test.two'
+               Source = 'urn:test'
+               EventTime = [DateTime]'2025-03-04T05:06:07'
+               SchemaUri = 'https://example.com/two'
+            }
+         )
+
+         $actual = @($records | New-CloudEvent -Time { $_.EventTime } `
+            -DataSchema { $_.SchemaUri } -ErrorAction Stop)
+
+         $actual.Count | Should -Be 2
+         $actual[0].Time | Should -Be $records[0].EventTime
+         $actual[0].DataSchema | Should -Be $records[0].SchemaUri
+         $actual[1].Time | Should -Be $records[1].EventTime
+         $actual[1].DataSchema | Should -Be $records[1].SchemaUri
+      }
+
+      It 'Rejects a null delay-bound Time on a later record' {
+         $records = @(
+            [pscustomobject]@{ Type = 'test.one'; Source = 'urn:test'; EventTime = [DateTime]'2025-02-03' }
+            [pscustomobject]@{ Type = 'test.two'; Source = 'urn:test'; EventTime = $null }
+         )
+         $processed = [System.Collections.Generic.List[object]]::new()
+
+         {
+            $records | New-CloudEvent -Time { $_.EventTime } -ErrorAction Stop |
+               ForEach-Object { $processed.Add($_) }
+         } |
+            Should -Throw '*Time cannot be null or empty*'
+
+         $processed.Count | Should -Be 1
+         $processed[0].Type | Should -Be 'test.one'
+      }
+
+      It 'Rejects invalid delay-bound DataSchema values on later records' -TestCases @(
+         @{ SchemaUri = $null; ExpectedError = '*DataSchema cannot be null or empty*' }
+         @{ SchemaUri = 'schema.json'; ExpectedError = '*DataSchema must be an absolute URI*' }
+      ) {
+         param($SchemaUri, $ExpectedError)
+
+         $records = @(
+            [pscustomobject]@{ Type = 'test.one'; Source = 'urn:test'; SchemaUri = 'https://example.com/one' }
+            [pscustomobject]@{ Type = 'test.two'; Source = 'urn:test'; SchemaUri = $SchemaUri }
+         )
+         $processed = [System.Collections.Generic.List[object]]::new()
+
+         {
+            $records | New-CloudEvent -DataSchema { $_.SchemaUri } -ErrorAction Stop |
+               ForEach-Object { $processed.Add($_) }
+         } |
+            Should -Throw $ExpectedError
+
+         $processed.Count | Should -Be 1
+         $processed[0].DataSchema | Should -Be 'https://example.com/one'
+      }
+
+      It 'Binds explicit Id, Time, and DataSchema pipeline properties' {
+         $expectedTime = [DateTime]'2025-02-03T04:05:06'
+         $record = [pscustomobject]@{
+            Type = 'test'
+            Source = 'urn:test'
+            Id = 'property-id'
+            Time = $expectedTime
+            DataSchema = 'https://example.com/schema.json'
+         }
+
+         $actual = $record | New-CloudEvent
+
+         $actual.Id | Should -Be 'property-id'
+         $actual.Time | Should -Be $expectedTime
+         $actual.DataSchema | Should -Be 'https://example.com/schema.json'
+      }
+
+      It 'Allows null DataSchema properties on pipeline records' {
+         $record = [pscustomobject]@{
+            Type = 'test'
+            Source = 'urn:test'
+            DataSchema = $null
+         }
+
+         $actual = $record | New-CloudEvent
+
+         $actual.DataSchema | Should -BeNullOrEmpty
+      }
+
+      It 'Rejects an explicitly null DataSchema before processing pipeline records' {
+         $record = [pscustomobject]@{
+            Type = 'test'
+            Source = 'urn:test'
+         }
+
+         { @($record) | New-CloudEvent -DataSchema $null -ErrorAction Stop } |
+            Should -Throw '*DataSchema cannot be null or empty*'
+      }
+
       It 'Rejects invalid DataSchema values' -TestCases @(
          @{ DataSchema = $null }
          @{ DataSchema = '' }

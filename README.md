@@ -45,7 +45,7 @@ Function        Set-CloudEventXmlData                              0.4.0      Cl
 ## 1. Event Producer
 ### Create a CloudEvent object
 ```powershell
-$cloudEvent = New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io' -Id (New-Guid).Guid -Time (Get-Date)
+$cloudEvent = New-CloudEvent -Type 'com.example.object.deleted.v2' -Source 'mailto:cncf-wg-serverless@lists.cncf.io'
 ```
 
 ### Set **JSON Data** to a CloudEvent object

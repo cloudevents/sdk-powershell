@@ -77,12 +77,19 @@ function New-CloudEvent {
         $DataSchema
     )
 
+    BEGIN {
+        $explicitId = $PSBoundParameters.ContainsKey('Id')
+        $explicitTime = $PSBoundParameters.ContainsKey('Time')
+    }
+
     PROCESS {
-        if (-not $PSBoundParameters.ContainsKey('Id')) {
+        if (-not $explicitId -and
+            (-not $MyInvocation.ExpectingInput -or $null -eq $_.PSObject.Properties['Id'])) {
             $Id = [Guid]::NewGuid().ToString()
         }
 
-        if (-not $PSBoundParameters.ContainsKey('Time')) {
+        if (-not $explicitTime -and
+            (-not $MyInvocation.ExpectingInput -or $null -eq $_.PSObject.Properties['Time'])) {
             $Time = Get-Date
         }
 

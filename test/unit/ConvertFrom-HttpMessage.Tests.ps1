@@ -44,6 +44,26 @@ Describe "ConvertFrom-HttpMessage Function Tests" {
          [Text.Encoding]::UTF8.GetString($actual.Data) | Should -Be 'response body'
       }
 
+      It 'Accepts a null Content property for a bodyless binary CloudEvent' {
+         $headers = @{
+            'Content-Type' = 'application/octet-stream'
+            'ce-specversion' = '1.0'
+            'ce-type' = 'test'
+            'ce-source' = 'urn:test'
+            'ce-id' = 'null-body-id'
+         }
+         $response = [pscustomobject]@{
+            Headers = $headers
+            Content = $null
+         }
+
+         $actual = $response | ConvertFrom-HttpMessage
+
+         $actual.Id | Should -Be 'null-body-id'
+         $actual.Type | Should -Be 'test'
+         $actual.Data | Should -BeNullOrEmpty
+      }
+
       It 'Looks up lowercase headers in a case-sensitive dictionary' {
          $headers = [System.Collections.Generic.Dictionary[string, string[]]]::new()
          $headers.Add('content-type', [string[]]@('text/plain'))
@@ -61,6 +81,24 @@ Describe "ConvertFrom-HttpMessage Function Tests" {
          $actual.Source | Should -Be 'urn:test'
          $actual.DataContentType.ToString() | Should -Be 'text/plain'
          [Text.Encoding]::UTF8.GetString($actual.Data) | Should -Be 'payload'
+      }
+
+      It 'Recognizes the spec version when the headers include a Keys header' {
+         $headers = [System.Collections.Generic.Dictionary[string, string[]]]::new()
+         $headers.Add('Content-Type', [string[]]@('text/plain'))
+         $headers.Add('Keys', [string[]]@('shadowed value'))
+         $headers.Add('ce-specversion', [string[]]@('1.0'))
+         $headers.Add('ce-type', [string[]]@('test'))
+         $headers.Add('ce-source', [string[]]@('urn:test'))
+         $headers.Add('ce-id', [string[]]@('keys-header-id'))
+
+         $actual = ConvertFrom-HttpMessage `
+            -Headers $headers `
+            -Body ([Text.Encoding]::UTF8.GetBytes('payload'))
+
+         $actual.Id | Should -Be 'keys-header-id'
+         $actual.Type | Should -Be 'test'
+         $actual.Source | Should -Be 'urn:test'
       }
    }
 

@@ -982,7 +982,6 @@ function ConvertFrom-HttpMessage {
 
         [Parameter(ValueFromPipelineByPropertyName = $true)]
         [Alias('Content')]
-        [ValidateNotNull()]
         [object]
         $Body)
 
@@ -1043,7 +1042,7 @@ function ConvertFrom-HttpMessage {
             else {
                 # Handle  Binary Mode
                 $version = $null
-                if ($Headers.Keys -contains $SpecVersionHttpHeader -and `
+                if ($Headers.ContainsKey($SpecVersionHttpHeader) -and `
                     $null -ne $Headers[$SpecVersionHttpHeader] -and `
                    ($Headers[$SpecVersionHttpHeader] | Select-Object -First 1).StartsWith('1.0')) {
                     # We do support the 1.0 cloud event version

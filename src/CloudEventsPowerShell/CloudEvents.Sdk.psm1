@@ -58,6 +58,11 @@ function New-CloudEvent {
 
    Creates an event from pipeline properties and generates its Id and Time.
 
+   .EXAMPLE
+   $records | New-CloudEvent -DataSchema { $_.SchemaUri } -Time { $_.EventTime }
+
+   Resolves the schema and time separately for each pipeline record.
+
    .INPUTS
    System.Management.Automation.PSObject with Type, Source, Id, Time, and/or DataSchema properties.
 
@@ -97,11 +102,11 @@ function New-CloudEvent {
         $explicitTime = $PSBoundParameters.ContainsKey('Time')
         $explicitDataSchema = $PSBoundParameters.ContainsKey('DataSchema')
 
-        if ($explicitTime -and $null -eq $Time) {
+        if ($explicitTime -and $null -eq $PSBoundParameters['Time']) {
             throw 'Time cannot be null or empty.'
         }
 
-        if ($explicitDataSchema -and $null -eq $DataSchema) {
+        if ($explicitDataSchema -and $null -eq $PSBoundParameters['DataSchema']) {
             throw 'DataSchema cannot be null or empty.'
         }
     }
@@ -119,6 +124,9 @@ function New-CloudEvent {
                 $null -eq $_.PSObject.Properties['Time'] -or
                 $null -eq $_.PSObject.Properties['Time'].Value)) {
             $Time = Get-Date
+        }
+        elseif ($explicitTime -and $null -eq $Time) {
+            throw 'Time cannot be null or empty.'
         }
 
         $cloudEvent = New-Object `
@@ -145,7 +153,7 @@ function New-CloudEvent {
             }
         }
 
-        if ($null -ne $eventDataSchema) {
+        if ($explicitDataSchema -or $null -ne $eventDataSchema) {
             Assert-CloudEventDataSchema $eventDataSchema
             $cloudEvent.DataSchema = $eventDataSchema
         }

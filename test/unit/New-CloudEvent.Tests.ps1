@@ -149,6 +149,71 @@ Describe "New-CloudEvent Function Tests" {
             Should -Throw '*Time cannot be null or empty*'
       }
 
+      It 'Resolves delay-bound Time and DataSchema for each pipeline record' {
+         $records = @(
+            [pscustomobject]@{
+               Type = 'test.one'
+               Source = 'urn:test'
+               EventTime = [DateTime]'2025-02-03T04:05:06'
+               SchemaUri = 'https://example.com/one'
+            }
+            [pscustomobject]@{
+               Type = 'test.two'
+               Source = 'urn:test'
+               EventTime = [DateTime]'2025-03-04T05:06:07'
+               SchemaUri = 'https://example.com/two'
+            }
+         )
+
+         $actual = @($records | New-CloudEvent -Time { $_.EventTime } `
+            -DataSchema { $_.SchemaUri } -ErrorAction Stop)
+
+         $actual.Count | Should -Be 2
+         $actual[0].Time | Should -Be $records[0].EventTime
+         $actual[0].DataSchema | Should -Be $records[0].SchemaUri
+         $actual[1].Time | Should -Be $records[1].EventTime
+         $actual[1].DataSchema | Should -Be $records[1].SchemaUri
+      }
+
+      It 'Rejects a null delay-bound Time on a later record' {
+         $records = @(
+            [pscustomobject]@{ Type = 'test.one'; Source = 'urn:test'; EventTime = [DateTime]'2025-02-03' }
+            [pscustomobject]@{ Type = 'test.two'; Source = 'urn:test'; EventTime = $null }
+         )
+         $processed = [System.Collections.Generic.List[object]]::new()
+
+         {
+            $records | New-CloudEvent -Time { $_.EventTime } -ErrorAction Stop |
+               ForEach-Object { $processed.Add($_) }
+         } |
+            Should -Throw '*Time cannot be null or empty*'
+
+         $processed.Count | Should -Be 1
+         $processed[0].Type | Should -Be 'test.one'
+      }
+
+      It 'Rejects invalid delay-bound DataSchema values on later records' -TestCases @(
+         @{ SchemaUri = $null; ExpectedError = '*DataSchema cannot be null or empty*' }
+         @{ SchemaUri = 'schema.json'; ExpectedError = '*DataSchema must be an absolute URI*' }
+      ) {
+         param($SchemaUri, $ExpectedError)
+
+         $records = @(
+            [pscustomobject]@{ Type = 'test.one'; Source = 'urn:test'; SchemaUri = 'https://example.com/one' }
+            [pscustomobject]@{ Type = 'test.two'; Source = 'urn:test'; SchemaUri = $SchemaUri }
+         )
+         $processed = [System.Collections.Generic.List[object]]::new()
+
+         {
+            $records | New-CloudEvent -DataSchema { $_.SchemaUri } -ErrorAction Stop |
+               ForEach-Object { $processed.Add($_) }
+         } |
+            Should -Throw $ExpectedError
+
+         $processed.Count | Should -Be 1
+         $processed[0].DataSchema | Should -Be 'https://example.com/one'
+      }
+
       It 'Binds explicit Id, Time, and DataSchema pipeline properties' {
          $expectedTime = [DateTime]'2025-02-03T04:05:06'
          $record = [pscustomobject]@{
